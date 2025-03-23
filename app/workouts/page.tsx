@@ -2,20 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-
-// 기본 운동 종류 데이터
-const DEFAULT_EXERCISE_TYPES = [
-  { id: 1, name: 'BENCH PRESS', category: 'CHEST' },
-  { id: 2, name: 'SQUAT', category: 'LEGS' },
-  { id: 3, name: 'DEADLIFT', category: 'BACK' },
-  { id: 4, name: 'SHOULDER PRESS', category: 'SHOULDERS' },
-  { id: 5, name: 'BICEP CURL', category: 'ARMS' },
-  { id: 6, name: 'TRICEP EXTENSION', category: 'ARMS' },
-  { id: 7, name: 'LAT PULL-DOWN', category: 'BACK' },
-  { id: 8, name: 'LEG PRESS', category: 'LEGS' },
-  { id: 9, name: 'FLY', category: 'CHEST' },
-  { id: 10, name: 'LATERAL RAISE', category: 'SHOULDERS' },
-];
+import { getWorkoutTypes, addWorkoutType, updateWorkoutType, deleteWorkoutType, WorkoutType } from '../lib/api';
 
 // 운동 카테고리 목록
 const EXERCISE_CATEGORIES = [
@@ -28,7 +15,7 @@ const INITIAL_SET = { weight: 0, reps: 0 };
 export default function WorkoutsPage() {
   const [date, setDate] = useState('');
   const [workoutData, setWorkoutData] = useState<any[]>([]);
-  const [selectedExercise, setSelectedExercise] = useState<number | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
   const [exercises, setExercises] = useState<any[]>([]);
   const [showExerciseForm, setShowExerciseForm] = useState(false);
   const [exerciseHistory, setExerciseHistory] = useState<any[]>([]);
@@ -36,12 +23,13 @@ export default function WorkoutsPage() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   
   // 운동 종류 관리 관련 상태
-  const [exerciseTypes, setExerciseTypes] = useState<any[]>([]);
+  const [exerciseTypes, setExerciseTypes] = useState<WorkoutType[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showManageExercises, setShowManageExercises] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
-  const [newExerciseCategory, setNewExerciseCategory] = useState(EXERCISE_CATEGORIES[0]);
-  const [editingExerciseType, setEditingExerciseType] = useState<any | null>(null);
-  const [deleteExerciseTypeId, setDeleteExerciseTypeId] = useState<number | null>(null);
+  const [editingExerciseType, setEditingExerciseType] = useState<WorkoutType | null>(null);
+  const [deleteExerciseTypeId, setDeleteExerciseTypeId] = useState<string | null>(null);
 
   // 운동 기록 및 운동 종류 초기화
   useEffect(() => {
@@ -50,7 +38,7 @@ export default function WorkoutsPage() {
     const formattedDate = today.toISOString().split('T')[0];
     setDate(formattedDate);
 
-    // 로컬 스토리지에서 운동 데이터 불러오기
+    // 로컬 스토리지에서 운동 기록 불러오기
     const savedExerciseData = localStorage.getItem('exerciseHistory');
     if (savedExerciseData) {
       const parsedData = JSON.parse(savedExerciseData);
@@ -61,16 +49,24 @@ export default function WorkoutsPage() {
       setWorkoutData(todayExercises);
     }
     
-    // 로컬 스토리지에서 운동 종류 불러오기
-    const savedExerciseTypes = localStorage.getItem('exerciseTypes');
-    if (savedExerciseTypes) {
-      setExerciseTypes(JSON.parse(savedExerciseTypes));
-    } else {
-      // 기본 운동 종류 저장
-      setExerciseTypes(DEFAULT_EXERCISE_TYPES);
-      localStorage.setItem('exerciseTypes', JSON.stringify(DEFAULT_EXERCISE_TYPES));
-    }
+    // Supabase에서 운동 종류 불러오기
+    fetchExerciseTypes();
   }, []);
+
+  // Supabase에서 운동 종류 불러오기
+  const fetchExerciseTypes = async () => {
+    try {
+      setLoading(true);
+      const types = await getWorkoutTypes();
+      setExerciseTypes(types);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || '운동 종류를 불러오는 중 오류가 발생했습니다.');
+      console.error('Error fetching workout types:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 날짜 변경시 해당 날짜의 운동 기록 불러오기
   useEffect(() => {
@@ -81,7 +77,7 @@ export default function WorkoutsPage() {
   }, [date, exerciseHistory]);
 
   // 운동 종류 선택 핸들러
-  const handleExerciseSelect = (exerciseId: number) => {
+  const handleExerciseSelect = (exerciseId: string) => {
     setSelectedExercise(exerciseId);
     setShowExerciseForm(true);
   };
@@ -97,7 +93,6 @@ export default function WorkoutsPage() {
       id: Date.now(),
       exerciseId: exercise.id,
       exerciseName: exercise.name,
-      category: exercise.category,
       sets: [{ ...INITIAL_SET }]
     };
     
@@ -204,463 +199,501 @@ export default function WorkoutsPage() {
   };
   
   // 운동 종류 추가 핸들러
-  const handleAddExerciseType = () => {
+  const handleAddExerciseType = async () => {
     if (!newExerciseName.trim()) return;
     
-    const newId = exerciseTypes.length > 0 
-      ? Math.max(...exerciseTypes.map(ex => ex.id)) + 1 
-      : 1;
-    
-    const newExerciseType = {
-      id: newId,
-      name: newExerciseName.toUpperCase(),
-      category: newExerciseCategory
-    };
-    
-    const updatedExerciseTypes = [...exerciseTypes, newExerciseType];
-    setExerciseTypes(updatedExerciseTypes);
-    
-    // 로컬 스토리지에 저장
-    localStorage.setItem('exerciseTypes', JSON.stringify(updatedExerciseTypes));
-    
-    // 입력 필드 초기화
-    setNewExerciseName('');
-    setNewExerciseCategory(EXERCISE_CATEGORIES[0]);
+    try {
+      setLoading(true);
+      const newExerciseType = await addWorkoutType(newExerciseName.toUpperCase());
+      
+      // 상태 업데이트
+      setExerciseTypes([...exerciseTypes, newExerciseType]);
+      
+      // 입력 필드 초기화
+      setNewExerciseName('');
+      setError(null);
+    } catch (err: any) {
+      console.error('Error adding workout type:', err);
+      
+      // 인증 관련 오류 메시지 개선
+      if (err.message && (
+        err.message.includes('로그인') || 
+        err.message.includes('인증') || 
+        err.message.includes('security policy'))
+      ) {
+        setError('로그인이 필요하거나 권한이 없습니다. 로그인 상태를 확인해주세요.');
+      } else {
+        setError(err.message || '운동 종류를 추가하는 중 오류가 발생했습니다.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
   
   // 운동 종류 수정 준비 핸들러
-  const handlePrepareEditExerciseType = (exerciseType: any) => {
+  const handlePrepareEditExerciseType = (exerciseType: WorkoutType) => {
     setEditingExerciseType(exerciseType);
     setNewExerciseName(exerciseType.name);
-    setNewExerciseCategory(exerciseType.category);
   };
   
   // 운동 종류 수정 완료 핸들러
-  const handleUpdateExerciseType = () => {
+  const handleUpdateExerciseType = async () => {
     if (!editingExerciseType || !newExerciseName.trim()) return;
     
-    const updatedExerciseTypes = exerciseTypes.map(ex => 
-      ex.id === editingExerciseType.id 
-        ? { ...ex, name: newExerciseName.toUpperCase(), category: newExerciseCategory } 
-        : ex
-    );
-    
-    setExerciseTypes(updatedExerciseTypes);
-    
-    // 로컬 스토리지에 저장
-    localStorage.setItem('exerciseTypes', JSON.stringify(updatedExerciseTypes));
-    
-    // 수정 모드 종료
-    setEditingExerciseType(null);
-    setNewExerciseName('');
-    setNewExerciseCategory(EXERCISE_CATEGORIES[0]);
+    try {
+      setLoading(true);
+      const updatedType = await updateWorkoutType(
+        editingExerciseType.id,
+        newExerciseName.toUpperCase()
+      );
+      
+      // 상태 업데이트
+      const updatedExerciseTypes = exerciseTypes.map(ex => 
+        ex.id === editingExerciseType.id ? updatedType : ex
+      );
+      
+      setExerciseTypes(updatedExerciseTypes);
+      
+      // 입력 필드 및 편집 상태 초기화
+      setNewExerciseName('');
+      setEditingExerciseType(null);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || '운동 종류를 업데이트하는 중 오류가 발생했습니다.');
+      console.error('Error updating workout type:', err);
+    } finally {
+      setLoading(false);
+    }
   };
   
   // 운동 종류 삭제 핸들러
-  const handleDeleteExerciseType = (id: number) => {
+  const handleDeleteExerciseType = (id: string) => {
     setDeleteExerciseTypeId(id);
   };
   
   // 운동 종류 삭제 확인 핸들러
-  const confirmDeleteExerciseType = () => {
-    if (deleteExerciseTypeId === null) return;
+  const confirmDeleteExerciseType = async () => {
+    if (!deleteExerciseTypeId) return;
     
-    // 해당 운동 종류를 사용하는 운동 기록 찾기
-    const usedInWorkouts = exerciseHistory.some(
-      workout => workout.exerciseId === deleteExerciseTypeId
-    );
-    
-    if (usedInWorkouts) {
-      alert('이 운동 종류를 사용하는 운동 기록이 있습니다. 삭제할 수 없습니다.');
+    try {
+      setLoading(true);
+      await deleteWorkoutType(deleteExerciseTypeId);
+      
+      // 상태 업데이트
+      const updatedExerciseTypes = exerciseTypes.filter(ex => ex.id !== deleteExerciseTypeId);
+      setExerciseTypes(updatedExerciseTypes);
+      
       setDeleteExerciseTypeId(null);
-      return;
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || '운동 종류를 삭제하는 중 오류가 발생했습니다.');
+      console.error('Error deleting workout type:', err);
+    } finally {
+      setLoading(false);
     }
-    
-    const updatedExerciseTypes = exerciseTypes.filter(ex => ex.id !== deleteExerciseTypeId);
-    setExerciseTypes(updatedExerciseTypes);
-    
-    // 로컬 스토리지에 저장
-    localStorage.setItem('exerciseTypes', JSON.stringify(updatedExerciseTypes));
-    
-    setDeleteExerciseTypeId(null);
   };
   
-  // 운동 종류 관리 화면 토글
+  // 운동 종류 관리 토글 핸들러
   const toggleManageExercises = () => {
     setShowManageExercises(!showManageExercises);
     
-    // 수정 모드 초기화
+    // 편집 상태 초기화
     if (!showManageExercises) {
-      setEditingExerciseType(null);
       setNewExerciseName('');
-      setNewExerciseCategory(EXERCISE_CATEGORIES[0]);
+      setEditingExerciseType(null);
     }
   };
-  
+
+  // 해당 날짜 형식 반환
+  const formattedDate = new Date(date).toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  });
+
   return (
-    <div className="flex flex-col space-y-6">
+    <div className="space-y-8">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold neon-text">WORKOUT SETS</h2>
-        <div className="flex items-center space-x-4">
+        <h1 className="text-2xl font-bold text-primary neon-text">WORKOUT RECORD</h1>
+        
+        <div className="flex space-x-4">
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="bg-black border border-primary/50 text-white px-3 py-1"
+          />
+          
           <button
             onClick={toggleManageExercises}
-            className="px-3 py-1 bg-black border border-accent text-accent hover:bg-accent/10 transition-colors text-sm"
+            className="text-black bg-primary hover:bg-primary/90 px-4 py-1"
           >
-            {showManageExercises ? 'BACK TO WORKOUTS' : 'MANAGE EXERCISES'}
+            {showManageExercises ? '운동 기록으로 돌아가기' : '운동 종류 관리'}
           </button>
-          <div className="flex items-center">
-            <label htmlFor="workout-date" className="mr-2 text-primary">DATE:</label>
-            <input
-              type="date"
-              id="workout-date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="px-3 py-2 bg-black border border-primary/70 text-white focus:outline-none focus:border-primary"
-            />
-          </div>
         </div>
       </div>
-
-      {/* 운동 종류 관리 UI */}
+      
+      {error && (
+        <div className="p-3 mb-4 text-sm text-red-400 bg-red-900/30 rounded-lg">
+          {error}
+        </div>
+      )}
+      
+      {loading && (
+        <div className="flex justify-center my-6">
+          <div className="text-primary text-lg">로딩 중...</div>
+        </div>
+      )}
+      
+      {/* 운동 종류 관리 섹션 */}
       {showManageExercises ? (
         <div className="space-y-6">
-          <div className="exercise-card p-6">
-            <h3 className="text-xl font-semibold mb-4 neon-text">
-              {editingExerciseType ? 'EDIT EXERCISE TYPE' : 'ADD NEW EXERCISE TYPE'}
+          <h2 className="text-xl font-semibold text-primary">운동 종류 관리</h2>
+          
+          {/* 운동 종류 추가 폼 */}
+          <div className="p-4 border border-primary/50 bg-black/80">
+            <h3 className="text-lg font-medium mb-3 text-white">
+              {editingExerciseType ? '운동 종류 수정' : '새 운동 종류 추가'}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">EXERCISE NAME</label>
-                <input
-                  type="text"
-                  value={newExerciseName}
-                  onChange={(e) => setNewExerciseName(e.target.value)}
-                  placeholder="E.G. BENCH PRESS"
-                  className="w-full px-3 py-2 bg-black border border-primary/50 text-white focus:outline-none focus:border-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">CATEGORY</label>
-                <select
-                  value={newExerciseCategory}
-                  onChange={(e) => setNewExerciseCategory(e.target.value)}
-                  className="w-full px-3 py-2 bg-black border border-primary/50 text-white focus:outline-none focus:border-primary"
-                >
-                  {EXERCISE_CATEGORIES.map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="flex justify-end space-x-2">
-              {editingExerciseType && (
+            
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                placeholder="운동 이름"
+                value={newExerciseName}
+                onChange={(e) => setNewExerciseName(e.target.value)}
+                className="flex-1 bg-black border border-primary/70 text-white px-3 py-2"
+              />
+              
+              {editingExerciseType ? (
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleUpdateExerciseType}
+                    disabled={loading || !newExerciseName.trim()}
+                    className="px-4 py-2 bg-primary text-black disabled:opacity-50"
+                  >
+                    수정
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setEditingExerciseType(null);
+                      setNewExerciseName('');
+                    }}
+                    className="px-4 py-2 border border-primary/70 text-white"
+                  >
+                    취소
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={() => {
-                    setEditingExerciseType(null);
-                    setNewExerciseName('');
-                    setNewExerciseCategory(EXERCISE_CATEGORIES[0]);
-                  }}
-                  className="px-4 py-2 border border-primary/70 text-primary bg-black hover:bg-primary/10"
+                  onClick={handleAddExerciseType}
+                  disabled={loading || !newExerciseName.trim()}
+                  className="px-4 py-2 bg-primary text-black disabled:opacity-50"
                 >
-                  CANCEL
+                  추가
                 </button>
               )}
-              <button
-                onClick={editingExerciseType ? handleUpdateExerciseType : handleAddExerciseType}
-                disabled={!newExerciseName.trim()}
-                className={`px-4 py-2 border ${
-                  newExerciseName.trim() 
-                    ? 'border-primary bg-primary text-black hover:bg-primary/90' 
-                    : 'border-gray-600 bg-gray-600 text-gray-300 cursor-not-allowed'
-                }`}
-              >
-                {editingExerciseType ? 'UPDATE' : 'ADD'}
-              </button>
             </div>
           </div>
           
-          <div className="exercise-card">
-            <h3 className="text-xl font-semibold mb-4 neon-text">EXERCISE TYPES</h3>
-            {exerciseTypes.length === 0 ? (
-              <p className="text-gray-400">No exercise types defined. Add some above.</p>
-            ) : (
-              <div className="space-y-3">
-                {exerciseTypes.map(exerciseType => (
-                  <div 
-                    key={exerciseType.id} 
-                    className="border border-primary/30 p-3 flex justify-between items-center"
-                  >
-                    <div>
-                      <h4 className="text-primary font-medium">{exerciseType.name}</h4>
-                      <span className="text-sm text-gray-400">{exerciseType.category}</span>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handlePrepareEditExerciseType(exerciseType)}
-                        className="px-2 py-1 bg-black border border-primary/70 text-primary hover:bg-primary/10 text-sm"
-                      >
-                        EDIT
-                      </button>
-                      <button
-                        onClick={() => handleDeleteExerciseType(exerciseType.id)}
-                        className="px-2 py-1 bg-black border border-danger/70 text-danger hover:bg-danger/10 text-sm"
-                      >
-                        DELETE
-                      </button>
-                    </div>
-                    
-                    {deleteExerciseTypeId === exerciseType.id && (
-                      <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-4">
-                        <div className="border border-danger/70 bg-black p-4 max-w-md">
-                          <h4 className="text-lg font-medium text-danger mb-4">DELETE EXERCISE TYPE?</h4>
-                          <p className="text-white mb-4">
-                            Are you sure you want to delete "{exerciseType.name}"? 
-                            This cannot be undone.
-                          </p>
-                          <div className="flex justify-end space-x-2">
+          {/* 운동 종류 목록 */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-gray-800">
+                <tr>
+                  <th className="p-3 border border-primary/30">운동 이름</th>
+                  <th className="p-3 border border-primary/30 w-48">액션</th>
+                </tr>
+              </thead>
+              <tbody>
+                {exerciseTypes.length === 0 ? (
+                  <tr>
+                    <td colSpan={2} className="p-4 text-center text-gray-400">
+                      저장된 운동 종류가 없습니다. 새 운동 종류를 추가하세요.
+                    </td>
+                  </tr>
+                ) : (
+                  exerciseTypes.map((exerciseType) => (
+                    <tr key={exerciseType.id} className="border-b border-primary/30">
+                      <td className="p-3 border border-primary/30">{exerciseType.name}</td>
+                      <td className="p-3 border border-primary/30">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handlePrepareEditExerciseType(exerciseType)}
+                            className="px-3 py-1 bg-primary/30 text-white hover:bg-primary/40"
+                          >
+                            수정
+                          </button>
+                          
+                          {deleteExerciseTypeId === exerciseType.id ? (
+                            <div className="flex space-x-1">
+                              <button
+                                onClick={confirmDeleteExerciseType}
+                                className="px-2 py-1 bg-red-700 text-white hover:bg-red-600"
+                              >
+                                확인
+                              </button>
+                              <button
+                                onClick={() => setDeleteExerciseTypeId(null)}
+                                className="px-2 py-1 bg-gray-600 text-white hover:bg-gray-500"
+                              >
+                                취소
+                              </button>
+                            </div>
+                          ) : (
                             <button
-                              onClick={() => setDeleteExerciseTypeId(null)}
-                              className="px-3 py-2 border border-primary/70 text-primary bg-black hover:bg-primary/10"
+                              onClick={() => handleDeleteExerciseType(exerciseType.id)}
+                              className="px-3 py-1 bg-red-900/50 text-white hover:bg-red-900/70"
                             >
-                              CANCEL
+                              삭제
                             </button>
-                            <button
-                              onClick={confirmDeleteExerciseType}
-                              className="px-3 py-2 border border-danger bg-danger/10 text-danger hover:bg-danger/20"
-                            >
-                              DELETE
-                            </button>
-                          </div>
+                          )}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       ) : (
-        <>
-          {/* 기존 운동 기록 */}
-          {workoutData.length > 0 && (
-            <div className="mb-8">
-              <h3 className="text-xl font-semibold mb-4 neon-text">
-                {date === new Date().toISOString().split('T')[0] ? "TODAY'S WORKOUTS" : "WORKOUTS FOR " + date}
-              </h3>
-              <div className="space-y-4">
-                {workoutData.map((workout, i) => (
-                  <div key={i} className="exercise-card">
-                    <div className="flex justify-between items-center mb-3">
-                      <div>
-                        <h4 className="text-lg font-medium text-primary">{workout.exerciseName}</h4>
-                        <span className="text-sm text-gray-400">{workout.category}</span>
-                      </div>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleEditWorkout(workout.id)}
-                          className="px-2 py-1 bg-black border border-primary/70 text-primary hover:bg-primary/10 text-sm"
-                        >
-                          EDIT
-                        </button>
-                        <button
-                          onClick={() => handleDeleteWorkout(workout.id)}
-                          className="px-2 py-1 bg-black border border-danger/70 text-danger hover:bg-danger/10 text-sm"
-                        >
-                          DELETE
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {deleteConfirmId === workout.id ? (
-                      <div className="p-3 border border-danger/50 bg-danger/10 mb-3">
-                        <p className="text-white mb-2">DELETE THIS WORKOUT?</p>
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => setDeleteConfirmId(null)}
-                            className="px-2 py-1 bg-black border border-primary/70 text-primary text-sm"
-                          >
-                            CANCEL
-                          </button>
-                          <button
-                            onClick={() => confirmDeleteWorkout(workout.id)}
-                            className="px-2 py-1 bg-danger text-white text-sm"
-                          >
-                            CONFIRM DELETE
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
-                    
-                    <div className="space-y-2">
-                      {workout.sets.map((set: any, j: number) => (
-                        <div key={j} className="set-row bg-black/50 p-2 border border-primary/30">
-                          <span className="font-medium text-primary">SET {j + 1}</span>
-                          <span className="text-center">{set.weight} KG</span>
-                          <span className="text-center">{set.reps} REPS</span>
-                          <span></span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 운동 추가/수정 폼 */}
-          <div id="edit-form" className="workout-form space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xl font-semibold neon-text">
-                {editingWorkoutId ? 'EDIT EXERCISE' : 'ADD EXERCISE'}
-              </h3>
-              {!editingWorkoutId && (
-                <button
-                  onClick={() => setShowExerciseForm(true)}
-                  className="px-3 py-1 bg-black border border-primary text-primary hover:bg-primary/10 transition-colors text-sm"
-                >
-                  + ADD EXERCISE
-                </button>
-              )}
-            </div>
-
-            {/* 운동 선택 폼 */}
-            {showExerciseForm && !editingWorkoutId && (
-              <div className="p-4 border border-primary/70 bg-black/80 neon-border">
-                <h4 className="text-lg font-medium mb-4 text-primary">SELECT EXERCISE</h4>
-                {exerciseTypes.length === 0 ? (
-                  <div className="text-center p-4">
-                    <p className="text-gray-400 mb-3">No exercise types defined.</p>
-                    <button
-                      onClick={toggleManageExercises}
-                      className="px-3 py-2 border border-accent text-accent hover:bg-accent/10"
-                    >
-                      MANAGE EXERCISES
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      {exerciseTypes.map(exercise => (
-                        <button
-                          key={exercise.id}
-                          onClick={() => handleExerciseSelect(exercise.id)}
-                          className={`px-4 py-2 border text-left ${
-                            selectedExercise === exercise.id 
-                              ? 'border-primary bg-primary/20 text-primary' 
-                              : 'border-primary/50 hover:border-primary hover:bg-primary/10'
-                          }`}
-                        >
-                          <div>{exercise.name}</div>
-                          <div className="text-xs opacity-70">{exercise.category}</div>
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex justify-end space-x-2">
+        /* 운동 기록 섹션 */
+        <div className="space-y-6">
+          <h2 className="text-xl font-semibold text-white">{formattedDate} 운동 기록</h2>
+          
+          {/* 새 운동 추가 폼 */}
+          <div id="edit-form" className="p-4 border border-primary/50 bg-black/80">
+            <h3 className="text-lg font-medium mb-3 text-white">
+              {editingWorkoutId ? '운동 수정' : '새 운동 추가'}
+            </h3>
+            
+            {/* 운동 선택 */}
+            {!selectedExercise && !exercises.length && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-300 mb-1">운동 선택</label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {loading ? (
+                    <div className="text-gray-400">운동 종류를 불러오는 중...</div>
+                  ) : exerciseTypes.length === 0 ? (
+                    <div className="text-gray-400">저장된 운동 종류가 없습니다.</div>
+                  ) : (
+                    exerciseTypes.map((exercise) => (
                       <button
-                        onClick={() => setShowExerciseForm(false)}
-                        className="px-4 py-2 border border-primary/70 text-primary bg-black hover:bg-primary/10"
+                        key={exercise.id}
+                        onClick={() => handleExerciseSelect(exercise.id)}
+                        className="text-left px-3 py-2 bg-gray-800 border border-primary/30 hover:bg-gray-700"
                       >
-                        CANCEL
+                        {exercise.name}
                       </button>
-                      <button
-                        onClick={handleAddExercise}
-                        disabled={!selectedExercise}
-                        className={`px-4 py-2 border ${
-                          selectedExercise ? 'border-primary bg-primary text-black hover:bg-primary/90' : 'border-gray-600 bg-gray-600 text-gray-300 cursor-not-allowed'
-                        }`}
-                      >
-                        ADD
-                      </button>
-                    </div>
-                  </>
-                )}
+                    ))
+                  )}
+                </div>
               </div>
             )}
-
-            {/* 운동 세트 입력 */}
+            
+            {/* 선택한 운동 */}
+            {showExerciseForm && (
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <span className="text-gray-400">선택한 운동:</span>
+                  <span className="ml-2 text-white">
+                    {exerciseTypes.find(ex => ex.id === selectedExercise)?.name}
+                  </span>
+                </div>
+                <div className="space-x-2">
+                  <button
+                    onClick={handleAddExercise}
+                    className="px-3 py-1 bg-primary text-black"
+                  >
+                    추가
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedExercise(null);
+                      setShowExerciseForm(false);
+                    }}
+                    className="px-3 py-1 border border-primary/50 text-white"
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* 세트 정보 입력 */}
             {exercises.length > 0 && (
               <div className="space-y-4">
                 {exercises.map((exercise, exerciseIndex) => (
-                  <div key={exercise.id} className="exercise-card">
+                  <div key={exercise.id} className="border border-primary/30 p-3">
                     <div className="flex justify-between items-center mb-3">
-                      <div>
-                        <h4 className="text-lg font-medium text-primary">{exercise.exerciseName}</h4>
-                        <span className="text-sm text-gray-400">{exercise.category}</span>
-                      </div>
+                      <h4 className="font-medium text-white">{exercise.exerciseName}</h4>
                       <button
                         onClick={() => handleAddSet(exerciseIndex)}
-                        className="px-3 py-1 bg-black border border-primary/70 text-primary hover:bg-primary/10 text-sm"
+                        className="px-2 py-1 bg-primary/30 text-white text-sm"
                       >
-                        + ADD SET
+                        + 세트 추가
                       </button>
                     </div>
-                    <div className="space-y-2">
-                      {exercise.sets.map((set: any, setIndex: number) => (
-                        <div key={setIndex} className="set-row">
-                          <span className="font-medium text-primary">SET {setIndex + 1}</span>
-                          <div>
-                            <label className="block text-xs text-gray-400 mb-1">WEIGHT (KG)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              value={set.weight}
-                              onChange={(e) => handleSetChange(exerciseIndex, setIndex, 'weight', parseInt(e.target.value) || 0)}
-                              className="w-full px-3 py-2 bg-black border border-primary/50 text-white focus:outline-none focus:border-primary"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs text-gray-400 mb-1">REPS</label>
-                            <input
-                              type="number"
-                              min="0"
-                              value={set.reps}
-                              onChange={(e) => handleSetChange(exerciseIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
-                              className="w-full px-3 py-2 bg-black border border-primary/50 text-white focus:outline-none focus:border-primary"
-                            />
-                          </div>
-                          <button
-                            onClick={() => handleRemoveSet(exerciseIndex, setIndex)}
-                            className="mt-4 p-2 text-danger hover:bg-danger/10 border border-danger/50"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                          </button>
-                        </div>
-                      ))}
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="border-b border-primary/30">
+                          <tr>
+                            <th className="p-2 text-left text-sm text-gray-400">세트</th>
+                            <th className="p-2 text-left text-sm text-gray-400">무게 (kg)</th>
+                            <th className="p-2 text-left text-sm text-gray-400">횟수</th>
+                            <th></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {exercise.sets.map((set: {weight: number, reps: number}, setIndex: number) => (
+                            <tr key={setIndex} className="border-b border-gray-800">
+                              <td className="p-2">{setIndex + 1}</td>
+                              <td className="p-2">
+                                <input
+                                  type="number"
+                                  value={set.weight}
+                                  onChange={(e) => handleSetChange(
+                                    exerciseIndex,
+                                    setIndex,
+                                    'weight',
+                                    parseInt(e.target.value) || 0
+                                  )}
+                                  className="w-20 bg-black border border-gray-700 p-1 text-white"
+                                />
+                              </td>
+                              <td className="p-2">
+                                <input
+                                  type="number"
+                                  value={set.reps}
+                                  onChange={(e) => handleSetChange(
+                                    exerciseIndex,
+                                    setIndex,
+                                    'reps',
+                                    parseInt(e.target.value) || 0
+                                  )}
+                                  className="w-20 bg-black border border-gray-700 p-1 text-white"
+                                />
+                              </td>
+                              <td className="p-2 text-right">
+                                <button
+                                  onClick={() => handleRemoveSet(exerciseIndex, setIndex)}
+                                  className="text-red-500 hover:text-red-400"
+                                >
+                                  삭제
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 ))}
-
-                <div className="flex justify-end mt-6 space-x-3">
-                  {editingWorkoutId && (
-                    <button
-                      onClick={handleCancelEdit}
-                      className="px-4 py-2 border border-primary/70 text-primary bg-black hover:bg-primary/10"
-                    >
-                      CANCEL EDIT
-                    </button>
-                  )}
+                
+                <div className="flex justify-end space-x-3 mt-4">
+                  <button
+                    onClick={handleCancelEdit}
+                    className="px-4 py-2 border border-primary/70 text-white"
+                  >
+                    취소
+                  </button>
                   <button
                     onClick={handleSaveWorkout}
-                    className="px-6 py-3 bg-primary text-black font-bold hover:bg-primary/90 neon-border"
+                    className="px-4 py-2 bg-primary text-black"
                   >
-                    {editingWorkoutId ? 'UPDATE WORKOUT' : 'SAVE WORKOUT'}
+                    {editingWorkoutId ? '수정 완료' : '저장'}
                   </button>
                 </div>
               </div>
             )}
           </div>
-        </>
+          
+          {/* 저장된 운동 기록 목록 */}
+          <div className="mt-8">
+            <h3 className="text-lg font-medium mb-3 text-white">오늘의 운동 기록</h3>
+            
+            {workoutData.length === 0 ? (
+              <div className="text-center py-8 border border-primary/30 bg-black/40">
+                <p className="text-gray-400">저장된 운동 기록이 없습니다.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {workoutData.map((workout) => (
+                  <div key={workout.id} className="p-4 border border-primary/30 bg-black/40">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="font-medium text-white">{workout.exerciseName}</h4>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleEditWorkout(workout.id)}
+                          className="px-3 py-1 bg-primary/30 text-white hover:bg-primary/40 text-sm"
+                        >
+                          수정
+                        </button>
+                        
+                        {deleteConfirmId === workout.id ? (
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={() => confirmDeleteWorkout(workout.id)}
+                              className="px-2 py-1 bg-red-700 text-white hover:bg-red-600 text-sm"
+                            >
+                              확인
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirmId(null)}
+                              className="px-2 py-1 bg-gray-600 text-white hover:bg-gray-500 text-sm"
+                            >
+                              취소
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleDeleteWorkout(workout.id)}
+                            className="px-3 py-1 bg-red-900/50 text-white hover:bg-red-900/70 text-sm"
+                          >
+                            삭제
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="border-b border-primary/30">
+                          <tr>
+                            <th className="p-2 text-left text-sm text-gray-400">세트</th>
+                            <th className="p-2 text-left text-sm text-gray-400">무게 (kg)</th>
+                            <th className="p-2 text-left text-sm text-gray-400">횟수</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {workout.sets.map((set: {weight: number, reps: number}, index: number) => (
+                            <tr key={index} className="border-b border-gray-800">
+                              <td className="p-2">{index + 1}</td>
+                              <td className="p-2">{set.weight}</td>
+                              <td className="p-2">{set.reps}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
-
+      
       <div className="mt-6 flex justify-center">
         <Link 
           href="/" 
-          className="px-4 py-2 border border-primary/70 text-primary bg-black hover:bg-primary/10"
+          className="px-6 py-3 border border-primary text-primary hover:bg-primary/10"
         >
-          BACK TO CALENDAR
+          캘린더로 돌아가기
         </Link>
       </div>
     </div>

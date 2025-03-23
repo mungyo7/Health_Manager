@@ -5,6 +5,21 @@ const formatDate = (date: Date): string => {
   return date.toISOString().split('T')[0];
 };
 
+// 현재 사용자 ID 가져오기
+const getCurrentUserId = async (): Promise<string> => {
+  const { data, error } = await supabase.auth.getUser();
+  
+  if (error) {
+    throw new Error('인증 세션을 확인할 수 없습니다. 다시 로그인해주세요.');
+  }
+  
+  if (!data?.user) {
+    throw new Error('로그인이 필요한 기능입니다.');
+  }
+  
+  return data.user.id;
+};
+
 // 타입 정의
 export type WorkoutType = {
   id: string;
@@ -51,9 +66,11 @@ export const getWorkoutTypes = async () => {
 };
 
 export const addWorkoutType = async (name: string) => {
+  const user_id = await getCurrentUserId();
+  
   const { data, error } = await supabase
     .from('workout_types')
-    .insert([{ name }])
+    .insert([{ name, user_id }])
     .select()
     .single();
   
@@ -65,10 +82,13 @@ export const addWorkoutType = async (name: string) => {
 };
 
 export const updateWorkoutType = async (id: string, name: string) => {
+  const user_id = await getCurrentUserId();
+  
   const { data, error } = await supabase
     .from('workout_types')
     .update({ name, updated_at: new Date().toISOString() })
     .eq('id', id)
+    .eq('user_id', user_id) // 자신의 데이터만 수정할 수 있도록 제한
     .select()
     .single();
   
@@ -80,10 +100,13 @@ export const updateWorkoutType = async (id: string, name: string) => {
 };
 
 export const deleteWorkoutType = async (id: string) => {
+  const user_id = await getCurrentUserId();
+  
   const { error } = await supabase
     .from('workout_types')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user_id); // 자신의 데이터만 삭제할 수 있도록 제한
   
   if (error) {
     throw error;
@@ -128,6 +151,7 @@ export const getWorkoutLogByDate = async (date: Date) => {
 };
 
 export const createOrUpdateWorkoutLog = async (date: Date, completed: boolean, duration_minutes?: number) => {
+  const user_id = await getCurrentUserId();
   const formattedDate = formatDate(date);
   
   // 먼저 해당 날짜의 로그가 있는지 확인
@@ -135,6 +159,7 @@ export const createOrUpdateWorkoutLog = async (date: Date, completed: boolean, d
     .from('workout_logs')
     .select('id')
     .eq('workout_date', formattedDate)
+    .eq('user_id', user_id)
     .single();
   
   // 이미 있다면 업데이트, 없다면 새로 생성
@@ -147,6 +172,7 @@ export const createOrUpdateWorkoutLog = async (date: Date, completed: boolean, d
         updated_at: new Date().toISOString() 
       })
       .eq('id', existingLog.id)
+      .eq('user_id', user_id)
       .select()
       .single();
     
@@ -156,13 +182,13 @@ export const createOrUpdateWorkoutLog = async (date: Date, completed: boolean, d
     
     return data as WorkoutLog;
   } else {
-    // user_id는 RLS를 통해 자동으로 설정됩니다 (auth.uid())
     const { data, error } = await supabase
       .from('workout_logs')
       .insert([{ 
         workout_date: formattedDate, 
         completed, 
-        duration_minutes
+        duration_minutes,
+        user_id
       }])
       .select()
       .single();
@@ -177,6 +203,8 @@ export const createOrUpdateWorkoutLog = async (date: Date, completed: boolean, d
 
 // 운동 세트 관련 API 함수
 export const getWorkoutSets = async (workoutLogId: string) => {
+  const user_id = await getCurrentUserId();
+  
   const { data, error } = await supabase
     .from('workout_sets')
     .select(`
@@ -184,6 +212,7 @@ export const getWorkoutSets = async (workoutLogId: string) => {
       workout_types(id, name)
     `)
     .eq('workout_log_id', workoutLogId)
+    .eq('user_id', user_id)
     .order('created_at');
   
   if (error) {
@@ -200,6 +229,8 @@ export const addWorkoutSet = async (
   weight: number,
   setNumber: number
 ) => {
+  const user_id = await getCurrentUserId();
+  
   const { data, error } = await supabase
     .from('workout_sets')
     .insert([{
@@ -207,7 +238,8 @@ export const addWorkoutSet = async (
       workout_type_id: workoutTypeId,
       reps,
       weight,
-      set_number: setNumber
+      set_number: setNumber,
+      user_id
     }])
     .select()
     .single();
@@ -224,6 +256,8 @@ export const updateWorkoutSet = async (
   reps: number,
   weight: number
 ) => {
+  const user_id = await getCurrentUserId();
+  
   const { data, error } = await supabase
     .from('workout_sets')
     .update({ 
@@ -232,6 +266,7 @@ export const updateWorkoutSet = async (
       updated_at: new Date().toISOString() 
     })
     .eq('id', id)
+    .eq('user_id', user_id)
     .select()
     .single();
   
@@ -243,10 +278,13 @@ export const updateWorkoutSet = async (
 };
 
 export const deleteWorkoutSet = async (id: string) => {
+  const user_id = await getCurrentUserId();
+  
   const { error } = await supabase
     .from('workout_sets')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', user_id);
   
   if (error) {
     throw error;
