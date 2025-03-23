@@ -24,7 +24,7 @@ export default function NavBar() {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <div className="w-8 h-8 bg-primary mr-3"></div>
-              <h1 className="text-xl font-bold text-primary neon-text">CYBER-GYM</h1>
+              <h1 className="text-xl font-bold text-primary neon-text">Health Calendar</h1>
             </div>
             <nav className="ml-8 flex space-x-8">
               <Link 
