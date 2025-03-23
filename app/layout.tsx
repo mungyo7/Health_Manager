@@ -15,6 +15,11 @@ export const metadata: Metadata = {
   description: "헬스 운동 기록 및 관리 앱",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1",
   themeColor: "#c2ff00",
+  icons: {
+    icon: '/icon.png', // public 폴더의 경로
+    apple: '/icon.png',
+    shortcut: '/icon.png'
+  }
 };
 
 export default function RootLayout({

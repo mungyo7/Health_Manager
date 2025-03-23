@@ -58,6 +58,7 @@ export default function WorkoutsPage() {
   const [newExerciseType, setNewExerciseType] = useState('CHEST'); // 기본값은 가슴으로 설정
   const [editingExerciseType, setEditingExerciseType] = useState<WorkoutType | null>(null);
   const [deleteExerciseTypeId, setDeleteExerciseTypeId] = useState<string | null>(null);
+  const [focusedInputs, setFocusedInputs] = useState<{ [key: string]: boolean }>({});
 
   // 오늘 날짜 설정 및 데이터 로드
   useEffect(() => {
@@ -110,6 +111,12 @@ export default function WorkoutsPage() {
   const handleExerciseSelect = (exerciseId: string) => {
     setSelectedExercise(exerciseId);
     setShowExerciseForm(true);
+  };
+
+  // 선택한 운동이 유산소 운동인지 확인하는 함수
+  const isCardioExercise = (exerciseId: string) => {
+    const exercise = exerciseTypes.find(ex => ex.id === exerciseId);
+    return exercise?.type === 'CARDIO';
   };
 
   // 운동 추가 핸들러
@@ -519,6 +526,18 @@ export default function WorkoutsPage() {
   // 그룹화된 운동 세트
   const groupedExercises = groupSetsByExercise();
 
+  // 입력 필드 포커스 핸들러
+  const handleInputFocus = (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps') => {
+    const inputKey = `${exerciseIndex}-${setIndex}-${field}`;
+    setFocusedInputs(prev => ({ ...prev, [inputKey]: true }));
+  };
+
+  // 입력 필드 블러 핸들러
+  const handleInputBlur = (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps') => {
+    const inputKey = `${exerciseIndex}-${setIndex}-${field}`;
+    setFocusedInputs(prev => ({ ...prev, [inputKey]: false }));
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
@@ -781,7 +800,7 @@ export default function WorkoutsPage() {
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
                         </svg>
-                        ADD_SET
+                        {exercise.workout_type.type === 'CARDIO' ? 'ADD_TIME' : 'ADD_SET'}
                       </button>
                     </div>
                     
@@ -789,48 +808,99 @@ export default function WorkoutsPage() {
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-primary/20">
-                            <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">SET</th>
-                            <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">WEIGHT (KG)</th>
-                            <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">REPS</th>
-                            <th></th>
+                            {exercise.workout_type.type === 'CARDIO' ? (
+                              <>
+                                <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">번호</th>
+                                <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">시간 (분)</th>
+                                <th></th>
+                              </>
+                            ) : (
+                              <>
+                                <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">SET</th>
+                                <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">WEIGHT (KG)</th>
+                                <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">REPS</th>
+                                <th></th>
+                              </>
+                            )}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-800">
                           {exercise.sets.map((set: {weight: number, reps: number, set_number: number, id?: string}, setIndex: number) => (
                             <tr key={set.id || setIndex} className="hover:bg-primary/5">
                               <td className="p-2 font-mono text-primary">{set.set_number}</td>
-                              <td className="p-2">
-                                <div className="relative">
-                                  <input
-                                    type="number"
-                                    value={set.weight}
-                                    onChange={(e) => handleSetChange(
-                                      exerciseIndex,
-                                      setIndex,
-                                      'weight',
-                                      parseInt(e.target.value) || 0
-                                    )}
-                                    className="w-24 bg-black border border-primary/40 p-2 text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
-                                  />
-                                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 h-1.5 w-1.5 bg-primary/70 animate-pulse"></div>
-                                </div>
-                              </td>
-                              <td className="p-2">
-                                <div className="relative">
-                                  <input
-                                    type="number"
-                                    value={set.reps}
-                                    onChange={(e) => handleSetChange(
-                                      exerciseIndex,
-                                      setIndex,
-                                      'reps',
-                                      parseInt(e.target.value) || 0
-                                    )}
-                                    className="w-24 bg-black border border-primary/40 p-2 text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
-                                  />
-                                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 h-1.5 w-1.5 bg-primary/70 animate-pulse"></div>
-                                </div>
-                              </td>
+                              
+                              {exercise.workout_type.type === 'CARDIO' ? (
+                                <td className="p-2">
+                                  <div className="relative">
+                                    <input
+                                      type="number"
+                                      value={
+                                        focusedInputs[`${exerciseIndex}-${setIndex}-weight`] && set.weight === 0
+                                          ? ''
+                                          : set.weight
+                                      }
+                                      onChange={(e) => handleSetChange(
+                                        exerciseIndex,
+                                        setIndex,
+                                        'weight',
+                                        e.target.value === '' ? 0 : parseInt(e.target.value) || 0
+                                      )}
+                                      onFocus={() => handleInputFocus(exerciseIndex, setIndex, 'weight')}
+                                      onBlur={() => handleInputBlur(exerciseIndex, setIndex, 'weight')}
+                                      className="w-24 bg-black border border-primary/40 p-2 text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                    />
+                                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 h-1.5 w-1.5 bg-primary/70 animate-pulse"></div>
+                                  </div>
+                                </td>
+                              ) : (
+                                <>
+                                  <td className="p-2">
+                                    <div className="relative">
+                                      <input
+                                        type="number"
+                                        value={
+                                          focusedInputs[`${exerciseIndex}-${setIndex}-weight`] && set.weight === 0
+                                            ? ''
+                                            : set.weight
+                                        }
+                                        onChange={(e) => handleSetChange(
+                                          exerciseIndex,
+                                          setIndex,
+                                          'weight',
+                                          e.target.value === '' ? 0 : parseInt(e.target.value) || 0
+                                        )}
+                                        onFocus={() => handleInputFocus(exerciseIndex, setIndex, 'weight')}
+                                        onBlur={() => handleInputBlur(exerciseIndex, setIndex, 'weight')}
+                                        className="w-24 bg-black border border-primary/40 p-2 text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                      />
+                                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 h-1.5 w-1.5 bg-primary/70 animate-pulse"></div>
+                                    </div>
+                                  </td>
+                                  <td className="p-2">
+                                    <div className="relative">
+                                      <input
+                                        type="number"
+                                        value={
+                                          focusedInputs[`${exerciseIndex}-${setIndex}-reps`] && set.reps === 0
+                                            ? ''
+                                            : set.reps
+                                        }
+                                        onChange={(e) => handleSetChange(
+                                          exerciseIndex,
+                                          setIndex,
+                                          'reps',
+                                          e.target.value === '' ? 0 : parseInt(e.target.value) || 0
+                                        )}
+                                        onFocus={() => handleInputFocus(exerciseIndex, setIndex, 'reps')}
+                                        onBlur={() => handleInputBlur(exerciseIndex, setIndex, 'reps')}
+                                        className="w-24 bg-black border border-primary/40 p-2 text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                      />
+                                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 h-1.5 w-1.5 bg-primary/70 animate-pulse"></div>
+                                    </div>
+                                  </td>
+                                </>
+                              )}
+                              
                               <td className="p-2 text-right">
                                 <button
                                   onClick={() => handleRemoveSet(exerciseIndex, setIndex)}
@@ -902,18 +972,36 @@ export default function WorkoutsPage() {
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-primary/20">
-                            <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">SET</th>
-                            <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">WEIGHT (KG)</th>
-                            <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">REPS</th>
-                            <th className="p-2 text-right text-xs text-primary uppercase tracking-wider">ACTIONS</th>
+                            {exercise.type === 'CARDIO' ? (
+                              <>
+                                <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">번호</th>
+                                <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">시간 (분)</th>
+                                <th className="p-2 text-right text-xs text-primary uppercase tracking-wider">ACTIONS</th>
+                              </>
+                            ) : (
+                              <>
+                                <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">SET</th>
+                                <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">WEIGHT (KG)</th>
+                                <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">REPS</th>
+                                <th className="p-2 text-right text-xs text-primary uppercase tracking-wider">ACTIONS</th>
+                              </>
+                            )}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-800">
                           {exercise.sets.map((set: any) => (
                             <tr key={set.id} className="hover:bg-primary/5 transition-colors duration-150">
                               <td className="p-2 font-mono text-primary/80">{set.set_number}</td>
-                              <td className="p-2 text-white">{set.weight}</td>
-                              <td className="p-2 text-white">{set.reps}</td>
+                              
+                              {exercise.type === 'CARDIO' ? (
+                                <td className="p-2 text-white">{set.weight} 분</td>
+                              ) : (
+                                <>
+                                  <td className="p-2 text-white">{set.weight}</td>
+                                  <td className="p-2 text-white">{set.reps}</td>
+                                </>
+                              )}
+                              
                               <td className="p-2 text-right">
                                 <div className="flex justify-end space-x-2">
                                   <button
