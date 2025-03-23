@@ -57,45 +57,52 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-md">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            새 계정 만들기
+    <div className="min-h-screen flex items-center justify-center bg-black">
+      <div className="max-w-md w-full space-y-8 p-8 bg-gray-900 border border-primary shadow-[0_0_15px_rgba(0,255,255,0.5)] rounded-lg">
+        <div className="text-center">
+          <h2 className="text-3xl font-extrabold text-primary neon-text">
+            회원가입
           </h2>
+          <div className="mt-2 h-1 w-full bg-gradient-to-r from-primary via-purple-500 to-primary"></div>
         </div>
         
         {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
+          <div className="mb-4 p-3 bg-red-900/50 border border-red-500 text-red-300 rounded-md">
             {error}
           </div>
         )}
         
         {success && (
-          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md">
-            회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.
+          <div className="mb-4 p-3 bg-green-900/50 border border-green-500 text-green-300 rounded-md">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span>회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.</span>
+            </div>
           </div>
         )}
         
         <form className="mt-8 space-y-6" onSubmit={handleRegister}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                이메일 주소
+          <div className="space-y-4">
+            <div className="relative">
+              <label htmlFor="email" className="text-xs text-primary uppercase tracking-wider mb-1 block">
+                아이디(이메일)
               </label>
               <input
                 id="email"
                 name="email"
                 type="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="이메일 주소"
+                className="appearance-none relative block w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-primary focus:border-primary text-white rounded-md focus:outline-none focus:ring-1 focus:ring-primary transition-all duration-200"
+                placeholder="ENTER_EMAIL"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
+              <div className="absolute right-3 top-9 h-3 w-3 bg-primary animate-pulse rounded-full"></div>
             </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
+            <div className="relative">
+              <label htmlFor="password" className="text-xs text-primary uppercase tracking-wider mb-1 block">
                 비밀번호
               </label>
               <input
@@ -103,14 +110,15 @@ export default function Register() {
                 name="password"
                 type="password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="비밀번호"
+                className="appearance-none relative block w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-primary focus:border-primary text-white rounded-md focus:outline-none focus:ring-1 focus:ring-primary transition-all duration-200"
+                placeholder="ENTER_PASSWORD"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              <div className="absolute right-3 top-9 h-3 w-3 bg-primary animate-pulse rounded-full"></div>
             </div>
-            <div>
-              <label htmlFor="confirm-password" className="sr-only">
+            <div className="relative">
+              <label htmlFor="confirm-password" className="text-xs text-primary uppercase tracking-wider mb-1 block">
                 비밀번호 확인
               </label>
               <input
@@ -118,29 +126,41 @@ export default function Register() {
                 name="confirm-password"
                 type="password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="비밀번호 확인"
+                className="appearance-none relative block w-full px-4 py-3 bg-gray-800 border border-gray-700 hover:border-primary focus:border-primary text-white rounded-md focus:outline-none focus:ring-1 focus:ring-primary transition-all duration-200"
+                placeholder="CONFIRM_PASSWORD"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
+              <div className="absolute right-3 top-9 h-3 w-3 bg-primary animate-pulse rounded-full"></div>
             </div>
           </div>
 
           <div>
             <button
               type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={loading || success}
+              className="group relative w-full flex justify-center py-3 px-4 bg-primary/20 border border-primary text-sm font-bold uppercase tracking-wider rounded-md text-primary hover:bg-primary/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50 transition-all duration-200 shadow-[0_0_10px_rgba(0,255,255,0.3)]"
             >
-              {loading ? '가입 중...' : '회원가입'}
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                {loading ? (
+                  <span className="animate-ping h-5 w-5 rounded-full bg-primary/50"></span>
+                ) : (
+                  <span className="h-5 w-5 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                )}
+              </span>
+              {loading ? 'PROCESSING...' : 'REGISTER'}
             </button>
           </div>
         </form>
         <div className="text-center mt-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-400">
             이미 계정이 있으신가요?{' '}
-            <Link href="/auth/login" className="text-indigo-600 hover:text-indigo-500">
-              로그인
+            <Link href="/auth/login" className="text-primary hover:text-primary/80 border-b border-primary/30 hover:border-primary/80">
+              로그인하기
             </Link>
           </p>
         </div>
