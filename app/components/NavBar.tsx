@@ -3,15 +3,18 @@
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/app/lib/supabase';
 
 export default function NavBar() {
-  const { user, signOut, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
 
   const handleSignOut = async () => {
-    await signOut();
-    router.push('/auth/login');
-    router.refresh();
+    const { error } = await supabase.auth.signOut();
+    if (!error) {
+      router.push('/auth/login');
+      router.refresh();
+    }
   };
 
   return (

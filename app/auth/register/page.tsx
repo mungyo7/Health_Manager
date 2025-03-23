@@ -11,6 +11,7 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const router = useRouter();
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -25,6 +26,13 @@ export default function Register() {
       return;
     }
 
+    // 비밀번호 길이 확인
+    if (password.length < 6) {
+      setError('비밀번호는 최소 6자 이상이어야 합니다.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -35,8 +43,12 @@ export default function Register() {
         throw error;
       }
 
-      // 성공적으로 가입 후 로그인 페이지로 이동
-      router.push('/auth/login');
+      setSuccess(true);
+      
+      // 성공적으로 가입 후 일정 시간 후 로그인 페이지로 이동
+      setTimeout(() => {
+        router.push('/auth/login');
+      }, 2000);
     } catch (error: any) {
       setError(error.message || '회원가입 중 오류가 발생했습니다.');
     } finally {
@@ -52,6 +64,19 @@ export default function Register() {
             새 계정 만들기
           </h2>
         </div>
+        
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">
+            {error}
+          </div>
+        )}
+        
+        {success && (
+          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md">
+            회원가입이 완료되었습니다! 로그인 페이지로 이동합니다.
+          </div>
+        )}
+        
         <form className="mt-8 space-y-6" onSubmit={handleRegister}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
@@ -100,10 +125,6 @@ export default function Register() {
               />
             </div>
           </div>
-
-          {error && (
-            <div className="text-red-500 text-sm text-center">{error}</div>
-          )}
 
           <div>
             <button
