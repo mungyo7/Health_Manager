@@ -11,8 +11,8 @@ const rajdhani = Rajdhani({
 });
 
 export const metadata: Metadata = {
-  title: "사이버펑크 헬스 캘린더",
-  description: "사이버펑크 스타일의 헬스 운동 기록 및 관리 앱",
+  title: "Health Manager",
+  description: "헬스 운동 기록 및 관리 앱",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1",
   themeColor: "#c2ff00",
 };
