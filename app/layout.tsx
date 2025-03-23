@@ -3,6 +3,7 @@ import { Rajdhani } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
 import NavBar from "./components/NavBar";
+import { Analytics } from "@vercel/analytics/react";
 
 const rajdhani = Rajdhani({
   weight: ["400", "500", "700"],
@@ -45,6 +46,7 @@ export default function RootLayout({
               </div>
             </main>
           </div>
+          <Analytics />
         </AuthProvider>
       </body>
     </html>
