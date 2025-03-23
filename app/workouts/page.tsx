@@ -2,7 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getWorkoutTypes, addWorkoutType, updateWorkoutType, deleteWorkoutType, WorkoutType } from '../lib/api';
+import { 
+  getWorkoutTypes, 
+  addWorkoutType, 
+  updateWorkoutType, 
+  deleteWorkoutType, 
+  WorkoutType,
+  getWorkoutLogByDate,
+  createOrUpdateWorkoutLog,
+  getWorkoutSets,
+  addWorkoutSet,
+  updateWorkoutSet,
+  deleteWorkoutSet,
+  WorkoutLog,
+  WorkoutSet
+} from '../lib/api';
 
 // 운동 카테고리 목록
 const EXERCISE_CATEGORIES = [
@@ -14,67 +28,70 @@ const INITIAL_SET = { weight: 0, reps: 0 };
 
 export default function WorkoutsPage() {
   const [date, setDate] = useState('');
-  const [workoutData, setWorkoutData] = useState<any[]>([]);
+  const [workoutLog, setWorkoutLog] = useState<WorkoutLog | null>(null);
+  const [workoutSets, setWorkoutSets] = useState<any[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
-  const [exercises, setExercises] = useState<any[]>([]);
+  const [currentExercises, setCurrentExercises] = useState<any[]>([]);
   const [showExerciseForm, setShowExerciseForm] = useState(false);
-  const [exerciseHistory, setExerciseHistory] = useState<any[]>([]);
-  const [editingWorkoutId, setEditingWorkoutId] = useState<number | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [editingSetId, setEditingSetId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
   // 운동 종류 관리 관련 상태
   const [exerciseTypes, setExerciseTypes] = useState<WorkoutType[]>([]);
   const [loading, setLoading] = useState(false);
+  const [savingWorkout, setSavingWorkout] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showManageExercises, setShowManageExercises] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
   const [editingExerciseType, setEditingExerciseType] = useState<WorkoutType | null>(null);
   const [deleteExerciseTypeId, setDeleteExerciseTypeId] = useState<string | null>(null);
 
-  // 운동 기록 및 운동 종류 초기화
+  // 오늘 날짜 설정 및 데이터 로드
   useEffect(() => {
-    // 오늘 날짜 설정
     const today = new Date();
     const formattedDate = today.toISOString().split('T')[0];
     setDate(formattedDate);
-
-    // 로컬 스토리지에서 운동 기록 불러오기
-    const savedExerciseData = localStorage.getItem('exerciseHistory');
-    if (savedExerciseData) {
-      const parsedData = JSON.parse(savedExerciseData);
-      setExerciseHistory(parsedData);
-      
-      // 오늘 날짜의 데이터 필터링
-      const todayExercises = parsedData.filter((item: any) => item.date === formattedDate);
-      setWorkoutData(todayExercises);
-    }
     
-    // Supabase에서 운동 종류 불러오기
-    fetchExerciseTypes();
+    // Supabase에서 운동 종류 및 해당 날짜의 운동 기록 불러오기
+    loadWorkoutData(new Date(formattedDate));
   }, []);
 
-  // Supabase에서 운동 종류 불러오기
-  const fetchExerciseTypes = async () => {
+  // 날짜 변경시 해당 날짜의 운동 기록 불러오기
+  useEffect(() => {
+    if (date) {
+      loadWorkoutData(new Date(date));
+    }
+  }, [date]);
+
+  // 운동 데이터 로드 함수
+  const loadWorkoutData = async (selectedDate: Date) => {
     try {
       setLoading(true);
+      
+      // 운동 종류 불러오기
       const types = await getWorkoutTypes();
       setExerciseTypes(types);
+      
+      // 선택한 날짜의 운동 로그 불러오기
+      const log = await getWorkoutLogByDate(selectedDate);
+      setWorkoutLog(log);
+      
+      // 운동 로그가 있다면 세트 정보 불러오기
+      if (log) {
+        const sets = await getWorkoutSets(log.id);
+        setWorkoutSets(sets);
+      } else {
+        setWorkoutSets([]);
+      }
+      
       setError(null);
     } catch (err: any) {
-      setError(err.message || '운동 종류를 불러오는 중 오류가 발생했습니다.');
-      console.error('Error fetching workout types:', err);
+      console.error('운동 데이터 로드 중 오류 발생:', err);
+      setError(err.message || '운동 데이터를 불러오는 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
   };
-
-  // 날짜 변경시 해당 날짜의 운동 기록 불러오기
-  useEffect(() => {
-    if (exerciseHistory.length > 0) {
-      const filteredExercises = exerciseHistory.filter((item: any) => item.date === date);
-      setWorkoutData(filteredExercises);
-    }
-  }, [date, exerciseHistory]);
 
   // 운동 종류 선택 핸들러
   const handleExerciseSelect = (exerciseId: string) => {
@@ -90,80 +107,145 @@ export default function WorkoutsPage() {
     if (!exercise) return;
     
     const newExercise = {
-      id: Date.now(),
-      exerciseId: exercise.id,
+      id: `temp-${Date.now()}`,
+      workout_type_id: exercise.id,
+      workout_type: exercise,
       exerciseName: exercise.name,
-      sets: [{ ...INITIAL_SET }]
+      sets: [{ weight: 0, reps: 0, set_number: 1 }]
     };
     
-    setExercises([...exercises, newExercise]);
+    setCurrentExercises([...currentExercises, newExercise]);
     setSelectedExercise(null);
     setShowExerciseForm(false);
   };
 
   // 세트 추가 핸들러
   const handleAddSet = (exerciseIndex: number) => {
-    const updatedExercises = [...exercises];
-    updatedExercises[exerciseIndex].sets.push({ ...INITIAL_SET });
-    setExercises(updatedExercises);
+    const updatedExercises = [...currentExercises];
+    const currentSets = updatedExercises[exerciseIndex].sets;
+    
+    updatedExercises[exerciseIndex].sets.push({ 
+      weight: 0, 
+      reps: 0, 
+      set_number: currentSets.length + 1 
+    });
+    
+    setCurrentExercises(updatedExercises);
   };
 
   // 세트 삭제 핸들러
   const handleRemoveSet = (exerciseIndex: number, setIndex: number) => {
-    const updatedExercises = [...exercises];
+    const updatedExercises = [...currentExercises];
     updatedExercises[exerciseIndex].sets.splice(setIndex, 1);
+    
+    // 세트 번호 재정렬
+    updatedExercises[exerciseIndex].sets.forEach((set: any, idx: number) => {
+      set.set_number = idx + 1;
+    });
+    
     if (updatedExercises[exerciseIndex].sets.length === 0) {
       updatedExercises.splice(exerciseIndex, 1);
     }
-    setExercises(updatedExercises);
+    
+    setCurrentExercises(updatedExercises);
   };
 
   // 세트 업데이트 핸들러
   const handleSetChange = (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps', value: number) => {
-    const updatedExercises = [...exercises];
+    const updatedExercises = [...currentExercises];
     updatedExercises[exerciseIndex].sets[setIndex][field] = value;
-    setExercises(updatedExercises);
+    setCurrentExercises(updatedExercises);
   };
 
   // 운동 기록 저장 핸들러
-  const handleSaveWorkout = () => {
-    if (exercises.length === 0) return;
+  const handleSaveWorkout = async () => {
+    if (currentExercises.length === 0) return;
     
-    let updatedHistory = [...exerciseHistory];
-    
-    if (editingWorkoutId) {
-      // 수정 모드인 경우 기존 운동 삭제
-      updatedHistory = updatedHistory.filter(item => item.id !== editingWorkoutId);
-      setEditingWorkoutId(null);
+    try {
+      setSavingWorkout(true);
+      
+      // 1. workout_log 생성 또는 업데이트
+      const logData = await createOrUpdateWorkoutLog(
+        new Date(date), 
+        true,  // completed
+        undefined    // duration_minutes - null 대신 undefined 사용
+      );
+      
+      // 2. 현재 세트들을 workout_sets 테이블에 저장
+      for (const exercise of currentExercises) {
+        for (const set of exercise.sets) {
+          if (set.id) {
+            // 기존 세트 업데이트
+            await updateWorkoutSet(
+              set.id,
+              set.reps,
+              set.weight
+            );
+          } else {
+            // 새 세트 추가
+            await addWorkoutSet(
+              logData.id,
+              exercise.workout_type_id,
+              set.reps,
+              set.weight,
+              set.set_number
+            );
+          }
+        }
+      }
+      
+      // 3. 데이터 다시 불러오기
+      await loadWorkoutData(new Date(date));
+      
+      // 4. 입력 폼 초기화
+      setCurrentExercises([]);
+      setEditingSetId(null);
+      setError(null);
+    } catch (err: any) {
+      console.error('운동 저장 중 오류 발생:', err);
+      setError(err.message || '운동 기록을 저장하는 중 오류가 발생했습니다.');
+    } finally {
+      setSavingWorkout(false);
     }
-    
-    const workoutToSave = exercises.map(exercise => ({
-      ...exercise,
-      date,
-    }));
-    
-    // 현재 운동 기록에 추가
-    updatedHistory = [...updatedHistory, ...workoutToSave];
-    setExerciseHistory(updatedHistory);
-    
-    // 로컬 스토리지에 저장
-    localStorage.setItem('exerciseHistory', JSON.stringify(updatedHistory));
-    
-    // 현재 날짜의 운동 기록 업데이트
-    const currentDateExercises = updatedHistory.filter(item => item.date === date);
-    setWorkoutData(currentDateExercises);
-    
-    // 운동 입력 폼 초기화
-    setExercises([]);
   };
   
-  // 운동 수정 핸들러
-  const handleEditWorkout = (workoutId: number) => {
-    const workoutToEdit = exerciseHistory.find(item => item.id === workoutId);
-    if (!workoutToEdit) return;
+  // 운동 세트 수정 핸들러
+  const handleEditSet = (set: any) => {
+    // 이미 편집 중인 운동이 있는지 확인
+    if (currentExercises.length > 0) {
+      if (confirm('진행 중인 편집 내용이 있습니다. 저장하지 않고 계속할까요?') === false) {
+        return;
+      }
+    }
     
-    setExercises([workoutToEdit]);
-    setEditingWorkoutId(workoutId);
+    setEditingSetId(set.id);
+    
+    // 세트를 그룹화하여 운동 별로 정리
+    const exerciseType = exerciseTypes.find(type => type.id === set.workout_type_id);
+    
+    if (!exerciseType) {
+      setError('운동 종류 정보를 찾을 수 없습니다.');
+      return;
+    }
+    
+    // 같은 운동 종류의 모든 세트 찾기
+    const sameSets = workoutSets.filter(s => s.workout_type_id === set.workout_type_id);
+    
+    // 현재 운동 세트 구성
+    const currentExercise = {
+      id: `edit-${exerciseType.id}`,
+      workout_type_id: exerciseType.id,
+      workout_type: exerciseType,
+      exerciseName: exerciseType.name,
+      sets: sameSets.map((s: any) => ({
+        id: s.id,
+        weight: s.weight,
+        reps: s.reps,
+        set_number: s.set_number
+      }))
+    };
+    
+    setCurrentExercises([currentExercise]);
     
     // 스크롤을 편집 폼 위치로 이동
     const editFormElement = document.getElementById('edit-form');
@@ -172,30 +254,49 @@ export default function WorkoutsPage() {
     }
   };
   
-  // 운동 삭제 핸들러
-  const handleDeleteWorkout = (workoutId: number) => {
-    setDeleteConfirmId(workoutId);
+  // 운동 세트 삭제 핸들러
+  const handleDeleteSet = (setId: string) => {
+    setDeleteConfirmId(setId);
   };
   
-  // 운동 삭제 확인 핸들러
-  const confirmDeleteWorkout = (workoutId: number) => {
-    const updatedHistory = exerciseHistory.filter(item => item.id !== workoutId);
-    setExerciseHistory(updatedHistory);
-    
-    // 로컬 스토리지 업데이트
-    localStorage.setItem('exerciseHistory', JSON.stringify(updatedHistory));
-    
-    // 현재 날짜의 운동 기록 업데이트
-    const currentDateExercises = updatedHistory.filter(item => item.date === date);
-    setWorkoutData(currentDateExercises);
-    
-    setDeleteConfirmId(null);
+  // 운동 세트 삭제 확인 핸들러
+  const confirmDeleteSet = async (setId: string) => {
+    try {
+      setLoading(true);
+      await deleteWorkoutSet(setId);
+      
+      // 데이터 다시 불러오기
+      await loadWorkoutData(new Date(date));
+      
+      setDeleteConfirmId(null);
+      setError(null);
+    } catch (err: any) {
+      console.error('세트 삭제 중 오류 발생:', err);
+      setError(err.message || '운동 세트를 삭제하는 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
   
   // 편집 취소 핸들러
   const handleCancelEdit = () => {
-    setExercises([]);
-    setEditingWorkoutId(null);
+    setCurrentExercises([]);
+    setEditingSetId(null);
+  };
+  
+  // Supabase에서 운동 종류 불러오기
+  const fetchExerciseTypes = async () => {
+    try {
+      setLoading(true);
+      const types = await getWorkoutTypes();
+      setExerciseTypes(types);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || '운동 종류를 불러오는 중 오류가 발생했습니다.');
+      console.error('Error fetching workout types:', err);
+    } finally {
+      setLoading(false);
+    }
   };
   
   // 운동 종류 추가 핸들러
@@ -304,6 +405,31 @@ export default function WorkoutsPage() {
     }
   };
 
+  // 운동 세트를 운동 종류별로 그룹화하는 함수
+  const groupSetsByExercise = () => {
+    const groupedSets: { [key: string]: any } = {};
+    
+    workoutSets.forEach((set: any) => {
+      if (!groupedSets[set.workout_type_id]) {
+        const exerciseType = exerciseTypes.find(type => type.id === set.workout_type_id);
+        groupedSets[set.workout_type_id] = {
+          workout_type_id: set.workout_type_id,
+          name: exerciseType?.name || '알 수 없는 운동',
+          sets: []
+        };
+      }
+      
+      groupedSets[set.workout_type_id].sets.push(set);
+    });
+    
+    // 세트 번호 순으로 정렬
+    Object.values(groupedSets).forEach(group => {
+      group.sets.sort((a: any, b: any) => a.set_number - b.set_number);
+    });
+    
+    return Object.values(groupedSets);
+  };
+
   // 해당 날짜 형식 반환
   const formattedDate = new Date(date).toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -311,6 +437,9 @@ export default function WorkoutsPage() {
     day: 'numeric',
     weekday: 'long',
   });
+
+  // 그룹화된 운동 세트
+  const groupedExercises = groupSetsByExercise();
 
   return (
     <div className="space-y-8">
@@ -467,11 +596,11 @@ export default function WorkoutsPage() {
           {/* 새 운동 추가 폼 */}
           <div id="edit-form" className="p-4 border border-primary/50 bg-black/80">
             <h3 className="text-lg font-medium mb-3 text-white">
-              {editingWorkoutId ? '운동 수정' : '새 운동 추가'}
+              {editingSetId ? '운동 세트 수정' : '새 운동 추가'}
             </h3>
             
             {/* 운동 선택 */}
-            {!selectedExercise && !exercises.length && (
+            {!selectedExercise && currentExercises.length === 0 && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-300 mb-1">운동 선택</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -524,9 +653,9 @@ export default function WorkoutsPage() {
             )}
             
             {/* 세트 정보 입력 */}
-            {exercises.length > 0 && (
+            {currentExercises.length > 0 && (
               <div className="space-y-4">
-                {exercises.map((exercise, exerciseIndex) => (
+                {currentExercises.map((exercise, exerciseIndex) => (
                   <div key={exercise.id} className="border border-primary/30 p-3">
                     <div className="flex justify-between items-center mb-3">
                       <h4 className="font-medium text-white">{exercise.exerciseName}</h4>
@@ -549,9 +678,9 @@ export default function WorkoutsPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {exercise.sets.map((set: {weight: number, reps: number}, setIndex: number) => (
-                            <tr key={setIndex} className="border-b border-gray-800">
-                              <td className="p-2">{setIndex + 1}</td>
+                          {exercise.sets.map((set: {weight: number, reps: number, set_number: number, id?: string}, setIndex: number) => (
+                            <tr key={set.id || setIndex} className="border-b border-gray-800">
+                              <td className="p-2">{set.set_number}</td>
                               <td className="p-2">
                                 <input
                                   type="number"
@@ -603,9 +732,10 @@ export default function WorkoutsPage() {
                   </button>
                   <button
                     onClick={handleSaveWorkout}
-                    className="px-4 py-2 bg-primary text-black"
+                    disabled={savingWorkout}
+                    className="px-4 py-2 bg-primary text-black disabled:opacity-50"
                   >
-                    {editingWorkoutId ? '수정 완료' : '저장'}
+                    {savingWorkout ? '저장 중...' : (editingSetId ? '수정 완료' : '저장')}
                   </button>
                 </div>
               </div>
@@ -616,48 +746,16 @@ export default function WorkoutsPage() {
           <div className="mt-8">
             <h3 className="text-lg font-medium mb-3 text-white">오늘의 운동 기록</h3>
             
-            {workoutData.length === 0 ? (
+            {groupedExercises.length === 0 ? (
               <div className="text-center py-8 border border-primary/30 bg-black/40">
                 <p className="text-gray-400">저장된 운동 기록이 없습니다.</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {workoutData.map((workout) => (
-                  <div key={workout.id} className="p-4 border border-primary/30 bg-black/40">
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-medium text-white">{workout.exerciseName}</h4>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleEditWorkout(workout.id)}
-                          className="px-3 py-1 bg-primary/30 text-white hover:bg-primary/40 text-sm"
-                        >
-                          수정
-                        </button>
-                        
-                        {deleteConfirmId === workout.id ? (
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => confirmDeleteWorkout(workout.id)}
-                              className="px-2 py-1 bg-red-700 text-white hover:bg-red-600 text-sm"
-                            >
-                              확인
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirmId(null)}
-                              className="px-2 py-1 bg-gray-600 text-white hover:bg-gray-500 text-sm"
-                            >
-                              취소
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => handleDeleteWorkout(workout.id)}
-                            className="px-3 py-1 bg-red-900/50 text-white hover:bg-red-900/70 text-sm"
-                          >
-                            삭제
-                          </button>
-                        )}
-                      </div>
+                {groupedExercises.map((exercise) => (
+                  <div key={exercise.workout_type_id} className="p-4 border border-primary/30 bg-black/40">
+                    <div className="mb-3">
+                      <h4 className="font-medium text-white">{exercise.name}</h4>
                     </div>
                     
                     <div className="overflow-x-auto">
@@ -667,14 +765,49 @@ export default function WorkoutsPage() {
                             <th className="p-2 text-left text-sm text-gray-400">세트</th>
                             <th className="p-2 text-left text-sm text-gray-400">무게 (kg)</th>
                             <th className="p-2 text-left text-sm text-gray-400">횟수</th>
+                            <th className="p-2 text-right text-sm text-gray-400">액션</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {workout.sets.map((set: {weight: number, reps: number}, index: number) => (
-                            <tr key={index} className="border-b border-gray-800">
-                              <td className="p-2">{index + 1}</td>
+                          {exercise.sets.map((set: any) => (
+                            <tr key={set.id} className="border-b border-gray-800">
+                              <td className="p-2">{set.set_number}</td>
                               <td className="p-2">{set.weight}</td>
                               <td className="p-2">{set.reps}</td>
+                              <td className="p-2 text-right">
+                                <div className="flex justify-end space-x-2">
+                                  <button
+                                    onClick={() => handleEditSet(set)}
+                                    className="px-2 py-1 bg-primary/30 text-white hover:bg-primary/40 text-xs"
+                                  >
+                                    수정
+                                  </button>
+                                  
+                                  {deleteConfirmId === set.id ? (
+                                    <div className="flex space-x-1">
+                                      <button
+                                        onClick={() => confirmDeleteSet(set.id)}
+                                        className="px-2 py-1 bg-red-700 text-white hover:bg-red-600 text-xs"
+                                      >
+                                        확인
+                                      </button>
+                                      <button
+                                        onClick={() => setDeleteConfirmId(null)}
+                                        className="px-2 py-1 bg-gray-600 text-white hover:bg-gray-500 text-xs"
+                                      >
+                                        취소
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleDeleteSet(set.id)}
+                                      className="px-2 py-1 bg-red-900/50 text-white hover:bg-red-900/70 text-xs"
+                                    >
+                                      삭제
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
