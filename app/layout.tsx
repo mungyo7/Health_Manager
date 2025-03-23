@@ -16,9 +16,9 @@ export const metadata: Metadata = {
   viewport: "width=device-width, initial-scale=1, maximum-scale=1",
   themeColor: "#c2ff00",
   icons: {
-    icon: '/icon.png', // public 폴더의 경로
-    apple: '/icon.png',
-    shortcut: '/icon.png'
+    icon: '/icon22.png', // public 폴더의 경로
+    apple: '/icon22.png',
+    shortcut: '/icon22.png'
   }
 };
 
