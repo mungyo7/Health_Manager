@@ -444,65 +444,82 @@ export default function WorkoutsPage() {
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-primary neon-text">WORKOUT RECORD</h1>
+        <h1 className="text-3xl font-bold text-primary neon-text tracking-wider glitch-text">WORKOUT_RECORDS</h1>
         
         <div className="flex space-x-4">
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="bg-black border border-primary/50 text-white px-3 py-1"
-          />
+          <div className="relative">
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="bg-black border-2 border-primary/70 text-primary px-4 py-2 focus:outline-none focus:border-primary/100 focus:ring-1 focus:ring-primary/50 shadow-[0_0_8px_rgba(0,255,255,0.3)] rounded-sm"
+            />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 h-2 w-2 bg-primary animate-pulse"></div>
+          </div>
           
           <button
             onClick={toggleManageExercises}
-            className="text-black bg-primary hover:bg-primary/90 px-4 py-1"
+            className="text-black bg-primary hover:bg-primary/90 px-6 py-2 font-bold uppercase tracking-wider border border-primary shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all duration-300 hover:shadow-[0_0_15px_rgba(0,255,255,0.7)]"
           >
-            {showManageExercises ? '운동 기록으로 돌아가기' : '운동 종류 관리'}
+            {showManageExercises ? 'RETURN_TO_RECORDS' : 'MANAGE_EXERCISES'}
           </button>
         </div>
       </div>
       
       {error && (
-        <div className="p-3 mb-4 text-sm text-red-400 bg-red-900/30 rounded-lg">
-          {error}
+        <div className="p-4 mb-4 text-sm text-red-300 bg-red-900/30 border border-red-500/50 rounded-sm shadow-[0_0_10px_rgba(255,0,0,0.1)]">
+          <div className="flex items-center">
+            <svg className="w-5 h-5 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <span>{error}</span>
+          </div>
         </div>
       )}
       
       {loading && (
-        <div className="flex justify-center my-6">
-          <div className="text-primary text-lg">로딩 중...</div>
+        <div className="flex justify-center my-8">
+          <div className="flex items-center space-x-3 text-primary">
+            <div className="h-4 w-4 bg-primary animate-ping"></div>
+            <div className="text-lg uppercase tracking-wider">LOADING_DATA...</div>
+          </div>
         </div>
       )}
       
       {/* 운동 종류 관리 섹션 */}
       {showManageExercises ? (
         <div className="space-y-6">
-          <h2 className="text-xl font-semibold text-primary">운동 종류 관리</h2>
+          <div className="flex items-center space-x-3">
+            <h2 className="text-xl font-bold text-primary uppercase tracking-wider">EXERCISE_DATABASE</h2>
+            <div className="h-px flex-grow bg-gradient-to-r from-transparent via-primary to-transparent"></div>
+          </div>
           
           {/* 운동 종류 추가 폼 */}
-          <div className="p-4 border border-primary/50 bg-black/80">
-            <h3 className="text-lg font-medium mb-3 text-white">
-              {editingExerciseType ? '운동 종류 수정' : '새 운동 종류 추가'}
+          <div className="p-6 border-2 border-primary/50 bg-gray-900/80 shadow-[0_0_15px_rgba(0,255,255,0.2)] rounded-sm">
+            <h3 className="text-lg font-bold mb-4 text-primary uppercase tracking-wider">
+              {editingExerciseType ? 'MODIFY_EXERCISE' : 'ADD_NEW_EXERCISE'}
             </h3>
             
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                placeholder="운동 이름"
-                value={newExerciseName}
-                onChange={(e) => setNewExerciseName(e.target.value)}
-                className="flex-1 bg-black border border-primary/70 text-white px-3 py-2"
-              />
+            <div className="flex space-x-3">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="EXERCISE_NAME"
+                  value={newExerciseName}
+                  onChange={(e) => setNewExerciseName(e.target.value)}
+                  className="w-full bg-black border-2 border-primary/70 text-primary px-4 py-3 focus:outline-none focus:border-primary/100 focus:ring-1 focus:ring-primary/50 shadow-[0_0_8px_rgba(0,255,255,0.2)]"
+                />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 h-2 w-2 bg-primary animate-pulse"></div>
+              </div>
               
               {editingExerciseType ? (
                 <div className="flex space-x-2">
                   <button
                     onClick={handleUpdateExerciseType}
                     disabled={loading || !newExerciseName.trim()}
-                    className="px-4 py-2 bg-primary text-black disabled:opacity-50"
+                    className="px-6 py-3 bg-primary text-black font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all duration-300"
                   >
-                    수정
+                    UPDATE
                   </button>
                   
                   <button
@@ -510,73 +527,73 @@ export default function WorkoutsPage() {
                       setEditingExerciseType(null);
                       setNewExerciseName('');
                     }}
-                    className="px-4 py-2 border border-primary/70 text-white"
+                    className="px-6 py-3 border-2 border-primary/70 text-primary font-bold uppercase tracking-wider hover:bg-primary/10 transition-all duration-300"
                   >
-                    취소
+                    CANCEL
                   </button>
                 </div>
               ) : (
                 <button
                   onClick={handleAddExerciseType}
                   disabled={loading || !newExerciseName.trim()}
-                  className="px-4 py-2 bg-primary text-black disabled:opacity-50"
+                  className="px-6 py-3 bg-primary text-black font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all duration-300"
                 >
-                  추가
+                  ADD
                 </button>
               )}
             </div>
           </div>
           
           {/* 운동 종류 목록 */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto border-2 border-primary/30 shadow-[0_0_15px_rgba(0,255,255,0.1)]">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-gray-800">
-                <tr>
-                  <th className="p-3 border border-primary/30">운동 이름</th>
-                  <th className="p-3 border border-primary/30 w-48">액션</th>
+              <thead>
+                <tr className="bg-primary/20 border-b-2 border-primary/50">
+                  <th className="p-4 text-primary uppercase tracking-wider font-bold">EXERCISE_NAME</th>
+                  <th className="p-4 text-primary uppercase tracking-wider font-bold w-48">ACTIONS</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-primary/20">
                 {exerciseTypes.length === 0 ? (
                   <tr>
-                    <td colSpan={2} className="p-4 text-center text-gray-400">
-                      저장된 운동 종류가 없습니다. 새 운동 종류를 추가하세요.
+                    <td colSpan={2} className="p-6 text-center text-gray-400 italic">
+                      데이터베이스에 등록된 운동이 없습니다. 새 운동을 추가하세요.
                     </td>
                   </tr>
                 ) : (
                   exerciseTypes.map((exerciseType) => (
-                    <tr key={exerciseType.id} className="border-b border-primary/30">
-                      <td className="p-3 border border-primary/30">{exerciseType.name}</td>
-                      <td className="p-3 border border-primary/30">
+                    <tr key={exerciseType.id} className="hover:bg-primary/5 transition-colors duration-150">
+                      <td className="p-4 text-white">{exerciseType.name}</td>
+                      <td className="p-4">
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handlePrepareEditExerciseType(exerciseType)}
-                            className="px-3 py-1 bg-primary/30 text-white hover:bg-primary/40"
+                            className="px-3 py-1 bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 transition-colors duration-200 uppercase tracking-wider text-sm"
                           >
-                            수정
+                            EDIT
                           </button>
                           
                           {deleteExerciseTypeId === exerciseType.id ? (
                             <div className="flex space-x-1">
                               <button
                                 onClick={confirmDeleteExerciseType}
-                                className="px-2 py-1 bg-red-700 text-white hover:bg-red-600"
+                                className="px-2 py-1 bg-red-900/70 text-red-300 border border-red-500/30 hover:bg-red-800 transition-colors duration-200 uppercase tracking-wider text-sm"
                               >
-                                확인
+                                CONFIRM
                               </button>
                               <button
                                 onClick={() => setDeleteExerciseTypeId(null)}
-                                className="px-2 py-1 bg-gray-600 text-white hover:bg-gray-500"
+                                className="px-2 py-1 bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700 transition-colors duration-200 uppercase tracking-wider text-sm"
                               >
-                                취소
+                                CANCEL
                               </button>
                             </div>
                           ) : (
                             <button
                               onClick={() => handleDeleteExerciseType(exerciseType.id)}
-                              className="px-3 py-1 bg-red-900/50 text-white hover:bg-red-900/70"
+                              className="px-3 py-1 bg-red-900/30 text-red-400 border border-red-500/30 hover:bg-red-900/50 transition-colors duration-200 uppercase tracking-wider text-sm"
                             >
-                              삭제
+                              DELETE
                             </button>
                           )}
                         </div>
@@ -591,19 +608,22 @@ export default function WorkoutsPage() {
       ) : (
         /* 운동 기록 섹션 */
         <div className="space-y-6">
-          <h2 className="text-xl font-semibold text-white">{formattedDate} 운동 기록</h2>
+          <div className="flex items-center space-x-3">
+            <h2 className="text-xl font-bold text-white uppercase tracking-wider">{formattedDate}</h2>
+            <div className="h-px flex-grow bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+          </div>
           
           {/* 새 운동 추가 폼 */}
-          <div id="edit-form" className="p-4 border border-primary/50 bg-black/80">
-            <h3 className="text-lg font-medium mb-3 text-white">
-              {editingSetId ? '운동 세트 수정' : '새 운동 추가'}
+          <div id="edit-form" className="p-6 border-2 border-primary/50 bg-gray-900/80 shadow-[0_0_15px_rgba(0,255,255,0.2)] rounded-sm">
+            <h3 className="text-lg font-bold mb-4 text-primary uppercase tracking-wider">
+              {editingSetId ? 'EDIT_WORKOUT_SET' : 'ADD_NEW_WORKOUT'}
             </h3>
             
             {/* 운동 선택 */}
             {!selectedExercise && currentExercises.length === 0 && (
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-300 mb-1">운동 선택</label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                <label className="block text-sm font-medium text-primary uppercase tracking-wider mb-2">SELECT_EXERCISE</label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {loading ? (
                     <div className="text-gray-400">운동 종류를 불러오는 중...</div>
                   ) : exerciseTypes.length === 0 ? (
@@ -613,7 +633,7 @@ export default function WorkoutsPage() {
                       <button
                         key={exercise.id}
                         onClick={() => handleExerciseSelect(exercise.id)}
-                        className="text-left px-3 py-2 bg-gray-800 border border-primary/30 hover:bg-gray-700"
+                        className="text-left px-4 py-3 bg-black border border-primary/30 hover:border-primary/70 hover:bg-primary/5 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-primary/50 shadow-[0_0_5px_rgba(0,255,255,0.1)] hover:shadow-[0_0_8px_rgba(0,255,255,0.2)]"
                       >
                         {exercise.name}
                       </button>
@@ -625,28 +645,28 @@ export default function WorkoutsPage() {
             
             {/* 선택한 운동 */}
             {showExerciseForm && (
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex justify-between items-center mb-4 p-3 border border-primary/20 bg-primary/5 shadow-inner">
                 <div>
-                  <span className="text-gray-400">선택한 운동:</span>
-                  <span className="ml-2 text-white">
+                  <span className="text-primary text-sm uppercase tracking-wider">SELECTED:</span>
+                  <span className="ml-2 text-white font-bold">
                     {exerciseTypes.find(ex => ex.id === selectedExercise)?.name}
                   </span>
                 </div>
                 <div className="space-x-2">
                   <button
                     onClick={handleAddExercise}
-                    className="px-3 py-1 bg-primary text-black"
+                    className="px-4 py-2 bg-primary text-black font-bold uppercase tracking-wider text-sm hover:shadow-[0_0_10px_rgba(0,255,255,0.3)] transition-all duration-300"
                   >
-                    추가
+                    ADD
                   </button>
                   <button
                     onClick={() => {
                       setSelectedExercise(null);
                       setShowExerciseForm(false);
                     }}
-                    className="px-3 py-1 border border-primary/50 text-white"
+                    className="px-4 py-2 border border-primary/50 text-primary uppercase tracking-wider text-sm hover:bg-primary/10 transition-all duration-300"
                   >
-                    취소
+                    CANCEL
                   </button>
                 </div>
               </div>
@@ -654,65 +674,77 @@ export default function WorkoutsPage() {
             
             {/* 세트 정보 입력 */}
             {currentExercises.length > 0 && (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {currentExercises.map((exercise, exerciseIndex) => (
-                  <div key={exercise.id} className="border border-primary/30 p-3">
-                    <div className="flex justify-between items-center mb-3">
-                      <h4 className="font-medium text-white">{exercise.exerciseName}</h4>
+                  <div key={exercise.id} className="border-2 border-primary/30 p-4 bg-black/40 shadow-[0_0_10px_rgba(0,255,255,0.1)]">
+                    <div className="flex justify-between items-center mb-3 pb-2 border-b border-primary/20">
+                      <h4 className="font-bold text-primary">{exercise.exerciseName}</h4>
                       <button
                         onClick={() => handleAddSet(exerciseIndex)}
-                        className="px-2 py-1 bg-primary/30 text-white text-sm"
+                        className="px-3 py-1 bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 transition-colors duration-200 uppercase tracking-wider text-xs flex items-center"
                       >
-                        + 세트 추가
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                        </svg>
+                        ADD_SET
                       </button>
                     </div>
                     
                     <div className="overflow-x-auto">
                       <table className="w-full">
-                        <thead className="border-b border-primary/30">
-                          <tr>
-                            <th className="p-2 text-left text-sm text-gray-400">세트</th>
-                            <th className="p-2 text-left text-sm text-gray-400">무게 (kg)</th>
-                            <th className="p-2 text-left text-sm text-gray-400">횟수</th>
+                        <thead>
+                          <tr className="border-b border-primary/20">
+                            <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">SET</th>
+                            <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">WEIGHT (KG)</th>
+                            <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">REPS</th>
                             <th></th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-gray-800">
                           {exercise.sets.map((set: {weight: number, reps: number, set_number: number, id?: string}, setIndex: number) => (
-                            <tr key={set.id || setIndex} className="border-b border-gray-800">
-                              <td className="p-2">{set.set_number}</td>
+                            <tr key={set.id || setIndex} className="hover:bg-primary/5">
+                              <td className="p-2 font-mono text-primary">{set.set_number}</td>
                               <td className="p-2">
-                                <input
-                                  type="number"
-                                  value={set.weight}
-                                  onChange={(e) => handleSetChange(
-                                    exerciseIndex,
-                                    setIndex,
-                                    'weight',
-                                    parseInt(e.target.value) || 0
-                                  )}
-                                  className="w-20 bg-black border border-gray-700 p-1 text-white"
-                                />
+                                <div className="relative">
+                                  <input
+                                    type="number"
+                                    value={set.weight}
+                                    onChange={(e) => handleSetChange(
+                                      exerciseIndex,
+                                      setIndex,
+                                      'weight',
+                                      parseInt(e.target.value) || 0
+                                    )}
+                                    className="w-24 bg-black border border-primary/40 p-2 text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                  />
+                                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 h-1.5 w-1.5 bg-primary/70 animate-pulse"></div>
+                                </div>
                               </td>
                               <td className="p-2">
-                                <input
-                                  type="number"
-                                  value={set.reps}
-                                  onChange={(e) => handleSetChange(
-                                    exerciseIndex,
-                                    setIndex,
-                                    'reps',
-                                    parseInt(e.target.value) || 0
-                                  )}
-                                  className="w-20 bg-black border border-gray-700 p-1 text-white"
-                                />
+                                <div className="relative">
+                                  <input
+                                    type="number"
+                                    value={set.reps}
+                                    onChange={(e) => handleSetChange(
+                                      exerciseIndex,
+                                      setIndex,
+                                      'reps',
+                                      parseInt(e.target.value) || 0
+                                    )}
+                                    className="w-24 bg-black border border-primary/40 p-2 text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                  />
+                                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 h-1.5 w-1.5 bg-primary/70 animate-pulse"></div>
+                                </div>
                               </td>
                               <td className="p-2 text-right">
                                 <button
                                   onClick={() => handleRemoveSet(exerciseIndex, setIndex)}
-                                  className="text-red-500 hover:text-red-400"
+                                  className="text-red-400 hover:text-red-300 flex items-center"
                                 >
-                                  삭제
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  </svg>
+                                  <span className="text-xs uppercase tracking-wider">REMOVE</span>
                                 </button>
                               </td>
                             </tr>
@@ -723,19 +755,19 @@ export default function WorkoutsPage() {
                   </div>
                 ))}
                 
-                <div className="flex justify-end space-x-3 mt-4">
+                <div className="flex justify-end space-x-3 mt-6">
                   <button
                     onClick={handleCancelEdit}
-                    className="px-4 py-2 border border-primary/70 text-white"
+                    className="px-5 py-2 border-2 border-primary/50 text-primary uppercase tracking-wider font-bold hover:bg-primary/10 transition-all duration-300"
                   >
-                    취소
+                    CANCEL
                   </button>
                   <button
                     onClick={handleSaveWorkout}
                     disabled={savingWorkout}
-                    className="px-4 py-2 bg-primary text-black disabled:opacity-50"
+                    className="px-5 py-2 bg-primary text-black uppercase tracking-wider font-bold disabled:opacity-50 hover:shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all duration-300"
                   >
-                    {savingWorkout ? '저장 중...' : (editingSetId ? '수정 완료' : '저장')}
+                    {savingWorkout ? 'SAVING...' : (editingSetId ? 'UPDATE' : 'SAVE')}
                   </button>
                 </div>
               </div>
@@ -744,66 +776,86 @@ export default function WorkoutsPage() {
           
           {/* 저장된 운동 기록 목록 */}
           <div className="mt-8">
-            <h3 className="text-lg font-medium mb-3 text-white">오늘의 운동 기록</h3>
+            <div className="flex items-center space-x-3 mb-4">
+              <h3 className="text-lg font-bold text-primary uppercase tracking-wider">TODAY'S_RECORDS</h3>
+              <div className="h-px flex-grow bg-gradient-to-r from-transparent via-primary/50 to-transparent"></div>
+            </div>
             
             {groupedExercises.length === 0 ? (
-              <div className="text-center py-8 border border-primary/30 bg-black/40">
-                <p className="text-gray-400">저장된 운동 기록이 없습니다.</p>
+              <div className="text-center py-12 border-2 border-primary/20 bg-black/70 shadow-[0_0_10px_rgba(0,255,255,0.1)]">
+                <div className="text-gray-400 flex flex-col items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-primary/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  <p className="text-sm uppercase tracking-wider">NO_WORKOUT_RECORDS_FOUND</p>
+                </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 {groupedExercises.map((exercise) => (
-                  <div key={exercise.workout_type_id} className="p-4 border border-primary/30 bg-black/40">
-                    <div className="mb-3">
-                      <h4 className="font-medium text-white">{exercise.name}</h4>
+                  <div key={exercise.workout_type_id} className="p-5 border-2 border-primary/20 bg-black/70 shadow-[0_0_10px_rgba(0,255,255,0.1)]">
+                    <div className="mb-3 pb-2 border-b border-primary/20">
+                      <h4 className="font-bold text-primary">{exercise.name}</h4>
                     </div>
                     
                     <div className="overflow-x-auto">
                       <table className="w-full">
-                        <thead className="border-b border-primary/30">
-                          <tr>
-                            <th className="p-2 text-left text-sm text-gray-400">세트</th>
-                            <th className="p-2 text-left text-sm text-gray-400">무게 (kg)</th>
-                            <th className="p-2 text-left text-sm text-gray-400">횟수</th>
-                            <th className="p-2 text-right text-sm text-gray-400">액션</th>
+                        <thead>
+                          <tr className="border-b border-primary/20">
+                            <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">SET</th>
+                            <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">WEIGHT (KG)</th>
+                            <th className="p-2 text-left text-xs text-primary uppercase tracking-wider">REPS</th>
+                            <th className="p-2 text-right text-xs text-primary uppercase tracking-wider">ACTIONS</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-gray-800">
                           {exercise.sets.map((set: any) => (
-                            <tr key={set.id} className="border-b border-gray-800">
-                              <td className="p-2">{set.set_number}</td>
-                              <td className="p-2">{set.weight}</td>
-                              <td className="p-2">{set.reps}</td>
+                            <tr key={set.id} className="hover:bg-primary/5 transition-colors duration-150">
+                              <td className="p-2 font-mono text-primary/80">{set.set_number}</td>
+                              <td className="p-2 text-white">{set.weight}</td>
+                              <td className="p-2 text-white">{set.reps}</td>
                               <td className="p-2 text-right">
                                 <div className="flex justify-end space-x-2">
                                   <button
                                     onClick={() => handleEditSet(set)}
-                                    className="px-2 py-1 bg-primary/30 text-white hover:bg-primary/40 text-xs"
+                                    className="px-2 py-1 bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 transition-colors duration-200 uppercase tracking-wider text-xs flex items-center"
                                   >
-                                    수정
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                    </svg>
+                                    EDIT
                                   </button>
                                   
                                   {deleteConfirmId === set.id ? (
                                     <div className="flex space-x-1">
                                       <button
                                         onClick={() => confirmDeleteSet(set.id)}
-                                        className="px-2 py-1 bg-red-700 text-white hover:bg-red-600 text-xs"
+                                        className="px-2 py-1 bg-red-900/70 text-red-300 border border-red-500/30 hover:bg-red-800 transition-colors duration-200 uppercase tracking-wider text-xs flex items-center"
                                       >
-                                        확인
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                        </svg>
+                                        YES
                                       </button>
                                       <button
                                         onClick={() => setDeleteConfirmId(null)}
-                                        className="px-2 py-1 bg-gray-600 text-white hover:bg-gray-500 text-xs"
+                                        className="px-2 py-1 bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700 transition-colors duration-200 uppercase tracking-wider text-xs flex items-center"
                                       >
-                                        취소
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
+                                        NO
                                       </button>
                                     </div>
                                   ) : (
                                     <button
                                       onClick={() => handleDeleteSet(set.id)}
-                                      className="px-2 py-1 bg-red-900/50 text-white hover:bg-red-900/70 text-xs"
+                                      className="px-2 py-1 bg-red-900/30 text-red-400 border border-red-500/30 hover:bg-red-900/50 transition-colors duration-200 uppercase tracking-wider text-xs flex items-center"
                                     >
-                                      삭제
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                      </svg>
+                                      DEL
                                     </button>
                                   )}
                                 </div>
@@ -821,12 +873,15 @@ export default function WorkoutsPage() {
         </div>
       )}
       
-      <div className="mt-6 flex justify-center">
+      <div className="mt-8 flex justify-center">
         <Link 
           href="/" 
-          className="px-6 py-3 border border-primary text-primary hover:bg-primary/10"
+          className="px-6 py-3 border-2 border-primary text-primary hover:bg-primary/10 uppercase tracking-wider font-bold shadow-[0_0_10px_rgba(0,255,255,0.2)] hover:shadow-[0_0_15px_rgba(0,255,255,0.4)] transition-all duration-300 flex items-center"
         >
-          캘린더로 돌아가기
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+          </svg>
+          RETURN_TO_CALENDAR
         </Link>
       </div>
     </div>
