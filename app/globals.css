@@ -202,3 +202,54 @@ button:hover, a:hover {
   margin-top: 0.25rem;
   display: inline-block;
 }
+
+/* 모바일 반응형 스타일 */
+@media (max-width: 768px) {
+  .calendar-container {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.25rem;
+  }
+
+  .calendar-day {
+    padding: 0.25rem;
+    font-size: 0.8rem;
+  }
+
+  .calendar-header {
+    gap: 0.25rem;
+    font-size: 0.8rem;
+  }
+
+  .set-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .workout-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+  }
+}
+
+/* 작은 모바일 화면 */
+@media (max-width: 480px) {
+  .cyber-container {
+    padding: 0.75rem;
+  }
+
+  .calendar-day {
+    font-size: 0.7rem;
+    padding: 0.15rem;
+  }
+
+  .calendar-header {
+    font-size: 0.7rem;
+  }
+
+  .cyber-container::before,
+  .cyber-container::after {
+    width: 10px;
+    height: 10px;
+  }
+}

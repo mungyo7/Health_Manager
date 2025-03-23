@@ -13,6 +13,8 @@ const rajdhani = Rajdhani({
 export const metadata: Metadata = {
   title: "사이버펑크 헬스 캘린더",
   description: "사이버펑크 스타일의 헬스 운동 기록 및 관리 앱",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+  themeColor: "#c2ff00",
 };
 
 export default function RootLayout({
@@ -22,11 +24,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <meta name="theme-color" content="#c2ff00" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </head>
       <body className={`${rajdhani.variable} antialiased`}>
         <AuthProvider>
           <div className="min-h-screen bg-black">
             <NavBar />
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-8">
               <div className="cyber-container">
                 {children}
               </div>

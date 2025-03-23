@@ -106,12 +106,21 @@ export default function WorkoutsPage() {
     const exercise = exerciseTypes.find(ex => ex.id === selectedExercise);
     if (!exercise) return;
     
+    // 현재 선택한 운동 타입에 대한 기존 세트들을 확인
+    const existingSets = workoutSets.filter(set => set.workout_type_id === exercise.id);
+    
+    // 마지막 세트 번호 찾기
+    let lastSetNumber = 0;
+    if (existingSets.length > 0) {
+      lastSetNumber = Math.max(...existingSets.map(set => set.set_number));
+    }
+    
     const newExercise = {
       id: `temp-${Date.now()}`,
       workout_type_id: exercise.id,
       workout_type: exercise,
       exerciseName: exercise.name,
-      sets: [{ weight: 0, reps: 0, set_number: 1 }]
+      sets: [{ weight: 0, reps: 0, set_number: lastSetNumber + 1 }]
     };
     
     setCurrentExercises([...currentExercises, newExercise]);
@@ -122,12 +131,28 @@ export default function WorkoutsPage() {
   // 세트 추가 핸들러
   const handleAddSet = (exerciseIndex: number) => {
     const updatedExercises = [...currentExercises];
-    const currentSets = updatedExercises[exerciseIndex].sets;
+    const currentExercise = updatedExercises[exerciseIndex];
+    const currentSets = currentExercise.sets;
+    
+    // 현재 편집 중인 운동 유형에 대한 최대 세트 번호 찾기
+    let maxSetNumber = 0;
+    
+    // 현재 편집 중인 세트들의 최대 번호 확인
+    if (currentSets.length > 0) {
+      maxSetNumber = Math.max(...currentSets.map((set: any) => set.set_number));
+    }
+    
+    // 기존에 저장된 세트도 확인
+    const existingSets = workoutSets.filter(set => set.workout_type_id === currentExercise.workout_type_id);
+    if (existingSets.length > 0) {
+      const existingMaxSetNumber = Math.max(...existingSets.map(set => set.set_number));
+      maxSetNumber = Math.max(maxSetNumber, existingMaxSetNumber);
+    }
     
     updatedExercises[exerciseIndex].sets.push({ 
       weight: 0, 
       reps: 0, 
-      set_number: currentSets.length + 1 
+      set_number: maxSetNumber + 1 
     });
     
     setCurrentExercises(updatedExercises);
@@ -173,6 +198,9 @@ export default function WorkoutsPage() {
       
       // 2. 현재 세트들을 workout_sets 테이블에 저장
       for (const exercise of currentExercises) {
+        // 저장 전에 세트를 세트 번호 순으로 정렬 (순서 유지)
+        exercise.sets.sort((a: any, b: any) => a.set_number - b.set_number);
+        
         for (const set of exercise.sets) {
           if (set.id) {
             // 기존 세트 업데이트
@@ -230,6 +258,9 @@ export default function WorkoutsPage() {
     
     // 같은 운동 종류의 모든 세트 찾기
     const sameSets = workoutSets.filter(s => s.workout_type_id === set.workout_type_id);
+    
+    // 세트 번호 순으로 정렬 (기존 순서 유지)
+    sameSets.sort((a, b) => a.set_number - b.set_number);
     
     // 현재 운동 세트 구성
     const currentExercise = {
@@ -443,23 +474,23 @@ export default function WorkoutsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-primary neon-text tracking-wider glitch-text">WORKOUT_RECORDS</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+        <h1 className="text-2xl md:text-3xl font-bold text-primary neon-text tracking-wider glitch-text">WORKOUT_RECORDS</h1>
         
-        <div className="flex space-x-4">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row w-full sm:w-auto space-y-3 sm:space-y-0 sm:space-x-4">
+          <div className="relative w-full sm:w-auto">
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="bg-black border-2 border-primary/70 text-primary px-4 py-2 focus:outline-none focus:border-primary/100 focus:ring-1 focus:ring-primary/50 shadow-[0_0_8px_rgba(0,255,255,0.3)] rounded-sm"
+              className="w-full bg-black border-2 border-primary/70 text-primary px-4 py-2 focus:outline-none focus:border-primary/100 focus:ring-1 focus:ring-primary/50 shadow-[0_0_8px_rgba(0,255,255,0.3)] rounded-sm"
             />
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 h-2 w-2 bg-primary animate-pulse"></div>
           </div>
           
           <button
             onClick={toggleManageExercises}
-            className="text-black bg-primary hover:bg-primary/90 px-6 py-2 font-bold uppercase tracking-wider border border-primary shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all duration-300 hover:shadow-[0_0_15px_rgba(0,255,255,0.7)]"
+            className="w-full sm:w-auto text-black bg-primary hover:bg-primary/90 px-6 py-2 font-bold uppercase tracking-wider border border-primary shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all duration-300 hover:shadow-[0_0_15px_rgba(0,255,255,0.7)]"
           >
             {showManageExercises ? 'RETURN_TO_RECORDS' : 'MANAGE_EXERCISES'}
           </button>
@@ -645,17 +676,17 @@ export default function WorkoutsPage() {
             
             {/* 선택한 운동 */}
             {showExerciseForm && (
-              <div className="flex justify-between items-center mb-4 p-3 border border-primary/20 bg-primary/5 shadow-inner">
-                <div>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 p-3 border border-primary/20 bg-primary/5 shadow-inner">
+                <div className="flex-shrink overflow-hidden mb-3 sm:mb-0">
                   <span className="text-primary text-sm uppercase tracking-wider">SELECTED:</span>
-                  <span className="ml-2 text-white font-bold">
+                  <span className="ml-2 text-white font-bold truncate block sm:inline-block">
                     {exerciseTypes.find(ex => ex.id === selectedExercise)?.name}
                   </span>
                 </div>
-                <div className="space-x-2">
+                <div className="flex w-full sm:w-auto gap-2">
                   <button
                     onClick={handleAddExercise}
-                    className="px-4 py-2 bg-primary text-black font-bold uppercase tracking-wider text-sm hover:shadow-[0_0_10px_rgba(0,255,255,0.3)] transition-all duration-300"
+                    className="flex-1 sm:flex-none min-w-20 px-4 py-2 bg-primary text-black font-bold uppercase tracking-wider text-sm hover:shadow-[0_0_10px_rgba(0,255,255,0.3)] transition-all duration-300"
                   >
                     ADD
                   </button>
@@ -664,7 +695,7 @@ export default function WorkoutsPage() {
                       setSelectedExercise(null);
                       setShowExerciseForm(false);
                     }}
-                    className="px-4 py-2 border border-primary/50 text-primary uppercase tracking-wider text-sm hover:bg-primary/10 transition-all duration-300"
+                    className="flex-1 sm:flex-none min-w-20 px-4 py-2 border border-primary/50 text-primary uppercase tracking-wider text-sm hover:bg-primary/10 transition-all duration-300"
                   >
                     CANCEL
                   </button>

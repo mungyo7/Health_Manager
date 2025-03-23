@@ -65,8 +65,8 @@ export default function WorkoutLogForm({ date, onSave }: WorkoutLogFormProps) {
   };
 
   return (
-    <div className="bg-gray-800 border border-primary/30 rounded-lg shadow-lg p-6 mb-6">
-      <h2 className="text-xl font-bold text-primary mb-4">운동 기록</h2>
+    <div className="bg-gray-800 border border-primary/30 rounded-lg shadow-lg p-4 md:p-6 mb-6">
+      <h2 className="text-lg md:text-xl font-bold text-primary mb-4">운동 기록</h2>
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
           <div className="flex items-center mb-2">
@@ -77,14 +77,14 @@ export default function WorkoutLogForm({ date, onSave }: WorkoutLogFormProps) {
               onChange={(e) => setCompleted(e.target.checked)}
               className="w-4 h-4 text-primary bg-gray-700 border-gray-600 rounded focus:ring-primary"
             />
-            <label htmlFor="completed" className="ml-2 text-sm font-medium text-white">
+            <label htmlFor="completed" className="ml-2 text-xs md:text-sm font-medium text-white">
               오늘 운동 완료
             </label>
           </div>
         </div>
         
         <div className="mb-4">
-          <label htmlFor="duration" className="block mb-2 text-sm font-medium text-white">
+          <label htmlFor="duration" className="block mb-2 text-xs md:text-sm font-medium text-white">
             운동 시간 (분)
           </label>
           <input
@@ -92,20 +92,20 @@ export default function WorkoutLogForm({ date, onSave }: WorkoutLogFormProps) {
             id="duration"
             value={duration}
             onChange={(e) => setDuration(e.target.value === '' ? '' : Number(e.target.value))}
-            className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5"
+            className="bg-gray-700 border border-gray-600 text-white text-xs md:text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2"
             placeholder="운동 시간을 입력하세요"
             min="0"
           />
         </div>
         
         {error && (
-          <div className="p-3 mb-4 text-sm text-red-400 bg-red-900/30 rounded-lg">
+          <div className="p-2 md:p-3 mb-3 md:mb-4 text-xs md:text-sm text-red-400 bg-red-900/30 rounded-lg">
             {error}
           </div>
         )}
         
         {success && (
-          <div className="p-3 mb-4 text-sm text-green-400 bg-green-900/30 rounded-lg">
+          <div className="p-2 md:p-3 mb-3 md:mb-4 text-xs md:text-sm text-green-400 bg-green-900/30 rounded-lg">
             운동 기록이 저장되었습니다!
           </div>
         )}
@@ -113,7 +113,7 @@ export default function WorkoutLogForm({ date, onSave }: WorkoutLogFormProps) {
         <button
           type="submit"
           disabled={loading}
-          className="text-black bg-primary hover:bg-primary/80 focus:ring-4 focus:outline-none focus:ring-primary/50 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center"
+          className="text-black bg-primary hover:bg-primary/80 focus:ring-4 focus:outline-none focus:ring-primary/50 font-medium rounded-lg text-xs md:text-sm w-full sm:w-auto px-4 py-2 text-center"
         >
           {loading ? '저장 중...' : '저장'}
         </button>

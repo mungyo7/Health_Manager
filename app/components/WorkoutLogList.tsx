@@ -48,6 +48,17 @@ export default function WorkoutLogList() {
   // 날짜 포맷 함수
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
+    
+    // 모바일에서는 짧은 형식 사용
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+      return date.toLocaleDateString('ko-KR', {
+        month: 'numeric',
+        day: 'numeric'
+      });
+    }
+    
     return date.toLocaleDateString('ko-KR', {
       year: 'numeric',
       month: 'long',
@@ -57,20 +68,20 @@ export default function WorkoutLogList() {
   };
 
   return (
-    <div className="bg-gray-800 border border-primary/30 rounded-lg shadow-lg p-6 mb-6">
+    <div className="bg-gray-800 border border-primary/30 rounded-lg shadow-lg p-4 md:p-6 mb-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-primary">최근 운동 기록</h2>
+        <h2 className="text-lg md:text-xl font-bold text-primary">최근 운동 기록</h2>
         <button
           onClick={refreshLogs}
           disabled={loading}
-          className="text-white bg-primary/30 hover:bg-primary/40 px-3 py-1 rounded-md text-sm"
+          className="text-white bg-primary/30 hover:bg-primary/40 px-2 py-1 md:px-3 md:py-1 rounded-md text-xs md:text-sm"
         >
           {loading ? '불러오는 중...' : '새로고침'}
         </button>
       </div>
 
       {error && (
-        <div className="p-3 mb-4 text-sm text-red-400 bg-red-900/30 rounded-lg">
+        <div className="p-2 md:p-3 mb-4 text-xs md:text-sm text-red-400 bg-red-900/30 rounded-lg">
           {error}
         </div>
       )}
@@ -80,17 +91,17 @@ export default function WorkoutLogList() {
           <div className="text-primary">불러오는 중...</div>
         </div>
       ) : logs.length === 0 ? (
-        <div className="text-center p-4 text-gray-400">
+        <div className="text-center p-4 text-gray-400 text-xs md:text-sm">
           최근 30일간의 운동 기록이 없습니다.
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left text-gray-300">
+        <div className="overflow-x-auto -mx-4 md:mx-0">
+          <table className="w-full text-xs md:text-sm text-left text-gray-300">
             <thead className="text-xs uppercase bg-gray-700 text-gray-300">
               <tr>
-                <th scope="col" className="px-6 py-3">날짜</th>
-                <th scope="col" className="px-6 py-3">상태</th>
-                <th scope="col" className="px-6 py-3">운동 시간 (분)</th>
+                <th scope="col" className="px-2 md:px-6 py-2 md:py-3">날짜</th>
+                <th scope="col" className="px-2 md:px-6 py-2 md:py-3">상태</th>
+                <th scope="col" className="px-2 md:px-6 py-2 md:py-3">운동 시간</th>
               </tr>
             </thead>
             <tbody>
@@ -99,16 +110,16 @@ export default function WorkoutLogList() {
                   key={log.id} 
                   className="bg-gray-800 border-b border-gray-700 hover:bg-gray-700"
                 >
-                  <td className="px-6 py-4">{formatDate(log.workout_date)}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-2 md:px-6 py-2 md:py-4 whitespace-nowrap">{formatDate(log.workout_date)}</td>
+                  <td className="px-2 md:px-6 py-2 md:py-4">
                     {log.completed ? (
                       <span className="text-green-400">완료</span>
                     ) : (
                       <span className="text-red-400">미완료</span>
                     )}
                   </td>
-                  <td className="px-6 py-4">
-                    {log.duration_minutes || '-'}
+                  <td className="px-2 md:px-6 py-2 md:py-4">
+                    {log.duration_minutes ? `${log.duration_minutes}분` : '-'}
                   </td>
                 </tr>
               ))}

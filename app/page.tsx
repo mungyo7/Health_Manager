@@ -16,6 +16,7 @@ const getFirstDayOfMonth = (year: number, month: number) => {
 };
 
 const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const WEEKDAYS_SHORT = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
 export default function Home() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -23,6 +24,25 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // 모바일 화면 감지
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    // 초기 체크
+    checkIfMobile();
+    
+    // 리사이즈 이벤트 리스너
+    window.addEventListener('resize', checkIfMobile);
+    
+    // 클린업
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
 
   // 현재 보고 있는 연도와 월
   const currentYear = currentDate.getFullYear();
@@ -112,17 +132,17 @@ export default function Home() {
   return (
     <div className="flex flex-col space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold neon-text">{currentYear} / {monthNames[currentMonth]}</h2>
+        <h2 className="text-xl md:text-2xl font-bold neon-text">{currentYear} / {monthNames[currentMonth]}</h2>
         <div className="flex space-x-2">
           <button 
             onClick={goToPreviousMonth}
-            className="px-4 py-2 bg-black border border-primary/70 text-primary hover:bg-primary/10 transition-colors"
+            className="px-2 py-1 md:px-4 md:py-2 bg-black border border-primary/70 text-primary hover:bg-primary/10 transition-colors text-sm md:text-base"
           >
             PREV
           </button>
           <button 
             onClick={goToNextMonth}
-            className="px-4 py-2 bg-black border border-primary/70 text-primary hover:bg-primary/10 transition-colors"
+            className="px-2 py-1 md:px-4 md:py-2 bg-black border border-primary/70 text-primary hover:bg-primary/10 transition-colors text-sm md:text-base"
           >
             NEXT
           </button>
@@ -136,7 +156,7 @@ export default function Home() {
       )}
 
       <div className="calendar-header">
-        {WEEKDAYS.map(day => (
+        {(isMobile ? WEEKDAYS_SHORT : WEEKDAYS).map(day => (
           <div key={day}>{day}</div>
         ))}
       </div>
@@ -150,57 +170,32 @@ export default function Home() {
           >
             {dayData && (
               <>
-                <div className="flex justify-between items-center">
-                  <span>{dayData.day}</span>
-                  {dayData.workout && (
-                    <span className="workout-badge">
-                      {dayData.workout.duration_minutes || 0}분
-                    </span>
-                  )}
-                </div>
-                <div className="mt-auto">
-                  {dayData.workout && (
-                    <div className={`text-xs ${dayData.workout.completed ? 'workout-completed-text' : 'text-warning'}`}>
-                      {dayData.workout.completed ? (
-                        <span className="flex items-center justify-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                          COMPLETED
-                        </span>
-                      ) : 'INCOMPLETE'}
-                    </div>
-                  )}
-                </div>
+                <div className="font-bold">{dayData.day}</div>
+                {dayData.workout?.completed && (
+                  <div className="text-xs md:text-sm mt-auto">
+                    <span className="workout-completed-text">OK</span>
+                  </div>
+                )}
               </>
             )}
           </div>
         ))}
       </div>
 
-      {/* 선택한 날짜의 운동 기록 폼 */}
       {selectedDate && (
         <div className="mt-6">
-          <h3 className="text-lg font-medium mb-4 neon-text">
-            {selectedDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 운동 기록
+          <h3 className="text-lg md:text-xl font-bold text-primary mb-4">
+            {selectedDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
           </h3>
           <WorkoutLogForm 
             date={selectedDate} 
-            onSave={handleWorkoutLogSaved} 
+            onSave={handleWorkoutLogSaved}
           />
         </div>
       )}
 
-      {/* 운동 기록 목록 */}
-      <WorkoutLogList />
-
-      <div className="mt-6 flex justify-center">
-        <Link 
-          href="/workouts" 
-          className="px-6 py-3 bg-primary text-black font-bold hover:bg-primary/90 neon-border"
-        >
-          운동 세트 기록
-        </Link>
+      <div className="mt-8">
+        <WorkoutLogList />
       </div>
     </div>
   );
