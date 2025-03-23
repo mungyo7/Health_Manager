@@ -43,7 +43,7 @@ export default function ProfilePage() {
         .single();
 
       if (error) {
-        // console.error('프로필 정보를 가져오는데 실패했습니다:', error);
+        console.error('프로필 정보를 가져오는데 실패했습니다:', error);
         // 오류 발생 시 빈 값으로 초기화
         setProfileData({
           username: null,
@@ -55,10 +55,11 @@ export default function ProfilePage() {
         setProfileData({
           username: data.username || null,
           height: data.height || null,
-          weight: null,
+          weight: data.weight || null,
           goals: data.goals || null,
         });
       }
+      // console.log(data.weight);
     } catch (error) {
       console.error('프로필 정보를 가져오는 중 오류 발생:', error);
       // 오류 발생 시 빈 값으로 초기화
@@ -110,6 +111,7 @@ export default function ProfilePage() {
         ? (value ? parseFloat(value) : null) 
         : (value || null),
     });
+   
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
