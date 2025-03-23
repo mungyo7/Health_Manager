@@ -1,0 +1,204 @@
+@import "tailwindcss";
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+  --primary: #c2ff00;
+  --primary-dark: #a3d600;
+  --secondary: #6c757d;
+  --success: #c2ff00;
+  --danger: #ff2a6d;
+  --warning: #ffcc00;
+  --completed: #c2ff00;
+  --accent: #00f0ff;
+  --border-color: #c2ff00;
+  --box-shadow: 0 0 8px rgba(194, 255, 0, 0.5);
+  --neon-glow: 0 0 5px rgba(194, 255, 0, 0.7);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --font-sans: 'Rajdhani', sans-serif;
+  --font-mono: 'Rajdhani', monospace;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --background: #000000;
+    --foreground: #ffffff;
+    --border-color: #c2ff00;
+    --box-shadow: 0 0 8px rgba(194, 255, 0, 0.5);
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Rajdhani', sans-serif;
+  background-image: 
+    radial-gradient(rgba(194, 255, 0, 0.1) 1px, transparent 1px),
+    radial-gradient(rgba(194, 255, 0, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-position: 0 0, 25px 25px;
+  overflow-x: hidden;
+}
+
+button, a {
+  transition: all 0.3s ease;
+}
+
+button:hover, a:hover {
+  text-shadow: var(--neon-glow);
+  filter: brightness(1.2);
+}
+
+.neon-text {
+  color: var(--primary);
+  text-shadow: var(--neon-glow);
+}
+
+.neon-border {
+  border: 1px solid var(--border-color);
+  box-shadow: var(--neon-glow);
+}
+
+.cyber-container {
+  position: relative;
+  border: 1px solid var(--border-color);
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.7);
+  box-shadow: var(--box-shadow);
+}
+
+.cyber-container::before,
+.cyber-container::after {
+  content: '';
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  border: 1px solid var(--border-color);
+}
+
+.cyber-container::before {
+  top: -5px;
+  left: -5px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.cyber-container::after {
+  bottom: -5px;
+  right: -5px;
+  border-left: none;
+  border-top: none;
+}
+
+.calendar-container {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+}
+
+.calendar-day {
+  border: 1px solid var(--border-color);
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.calendar-day:hover {
+  border-color: var(--primary);
+  box-shadow: var(--box-shadow);
+}
+
+.calendar-day.workout-completed {
+  background-color: rgba(194, 255, 0, 0.2);
+  border-color: var(--completed);
+  border-width: 2px;
+  box-shadow: 0 0 10px rgba(194, 255, 0, 0.7);
+}
+
+.calendar-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: var(--primary);
+}
+
+.workout-form {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.exercise-card {
+  border: 1px solid var(--border-color);
+  border-radius: 0;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background-color: rgba(0, 0, 0, 0.7);
+  box-shadow: var(--box-shadow);
+  position: relative;
+}
+
+.exercise-card::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-top: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+}
+
+.exercise-card::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: -3px;
+  width: 10px;
+  height: 10px;
+  border-bottom: 1px solid var(--border-color);
+  border-left: 1px solid var(--border-color);
+}
+
+.set-row {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr auto;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  align-items: center;
+}
+
+.workout-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary);
+  color: black;
+  font-size: 0.75rem;
+  border-radius: 0;
+  padding: 0.25rem 0.5rem;
+  font-weight: bold;
+}
+
+/* 완료 표시 텍스트에 대한 새로운 스타일 */
+.workout-completed-text {
+  color: var(--primary);
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(194, 255, 0, 0.7);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-top: 0.25rem;
+  display: inline-block;
+}
