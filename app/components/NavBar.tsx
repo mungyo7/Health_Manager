@@ -30,7 +30,7 @@ export default function NavBar() {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <div className="w-6 h-6 md:w-8 md:h-8 bg-primary mr-2 md:mr-3"></div>
-              <h1 className="text-lg md:text-xl font-bold text-primary neon-text">Health Calendar</h1>
+              <h1 className="text-lg md:text-xl font-bold text-primary neon-text">Health Manager</h1>
             </div>
             
             {/* 데스크탑 내비게이션 */}
