@@ -25,6 +25,7 @@ export type WorkoutType = {
   id: string;
   user_id: string;
   name: string;
+  type: string;
   created_at?: string;
   updated_at?: string;
 };
@@ -65,12 +66,12 @@ export const getWorkoutTypes = async () => {
   return data as WorkoutType[];
 };
 
-export const addWorkoutType = async (name: string) => {
+export const addWorkoutType = async (name: string, type: string) => {
   const user_id = await getCurrentUserId();
   
   const { data, error } = await supabase
     .from('workout_types')
-    .insert([{ name, user_id }])
+    .insert([{ name, type, user_id }])
     .select()
     .single();
   
@@ -81,12 +82,12 @@ export const addWorkoutType = async (name: string) => {
   return data as WorkoutType;
 };
 
-export const updateWorkoutType = async (id: string, name: string) => {
+export const updateWorkoutType = async (id: string, name: string, type: string) => {
   const user_id = await getCurrentUserId();
   
   const { data, error } = await supabase
     .from('workout_types')
-    .update({ name, updated_at: new Date().toISOString() })
+    .update({ name, type, updated_at: new Date().toISOString() })
     .eq('id', id)
     .eq('user_id', user_id) // 자신의 데이터만 수정할 수 있도록 제한
     .select()
@@ -203,17 +204,14 @@ export const createOrUpdateWorkoutLog = async (date: Date, completed: boolean, d
 
 // 운동 세트 관련 API 함수
 export const getWorkoutSets = async (workoutLogId: string) => {
-  const user_id = await getCurrentUserId();
-  
   const { data, error } = await supabase
     .from('workout_sets')
     .select(`
       *,
-      workout_types(id, name)
+      workout_type:workout_types(id, name, type)
     `)
     .eq('workout_log_id', workoutLogId)
-    .eq('user_id', user_id)
-    .order('created_at');
+    .order('id');
   
   if (error) {
     throw error;

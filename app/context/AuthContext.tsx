@@ -56,6 +56,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
     });
+    
+    // 회원가입 성공 시 profiles 테이블에 기본 데이터 생성
+    if (data.user && !error) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: data.user.id,
+          email: email,
+          username: email.split('@')[0],
+          height: 0,
+          weight: 0,
+          goals: '',
+          created_at: new Date(),
+          updated_at: new Date(),
+        });
+        
+      if (profileError) {
+        console.error('프로필 생성 중 오류 발생:', profileError);
+      }
+    }
+    
     return { data, error };
   };
 

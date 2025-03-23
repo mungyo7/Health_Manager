@@ -4,12 +4,39 @@ import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/app/lib/supabase';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function NavBar() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchUsername();
+    }
+  }, [user]);
+
+  const fetchUsername = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user?.id)
+        .single();
+
+      if (error) {
+        console.error('사용자 닉네임을 가져오는데 실패했습니다:', error);
+        setUsername(null);
+      } else if (data) {
+        setUsername(data.username || null);
+      }
+    } catch (error) {
+      console.error('닉네임을 가져오는 중 오류 발생:', error);
+      setUsername(null);
+    }
+  };
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -47,20 +74,33 @@ export default function NavBar() {
               >
                 WORKOUTS
               </Link>
+              {user && (
+                <Link 
+                  href="/profile" 
+                  className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-white hover:text-primary"
+                >
+                  PROFILE
+                </Link>
+              )}
             </nav>
           </div>
           
           <div className="flex items-center space-x-3">
             {/* 모바일 로그인/로그아웃 버튼 - 항상 표시 */}
             {!isLoading && (
-              <div className="md:hidden">
+              <div className="md:hidden flex items-center space-x-2">
                 {user ? (
-                  <button
-                    onClick={handleSignOut}
-                    className="inline-flex items-center px-3 py-1 border border-primary text-xs font-medium rounded-md text-white hover:bg-primary/20 focus:outline-none"
-                  >
-                    로그아웃
-                  </button>
+                  <>
+                    {username && (
+                      <span className="text-xs text-primary">{username}</span>
+                    )}
+                    <button
+                      onClick={handleSignOut}
+                      className="inline-flex items-center px-3 py-1 border border-primary text-xs font-medium rounded-md text-white hover:bg-primary/20 focus:outline-none"
+                    >
+                      로그아웃
+                    </button>
+                  </>
                 ) : (
                   <Link
                     href="/auth/login"
@@ -94,7 +134,11 @@ export default function NavBar() {
                 <>
                   {user ? (
                     <div className="flex items-center space-x-4">
-                      <span className="text-sm text-white">{user.email}</span>
+                      {username ? (
+                        <span className="text-sm text-primary">{username}</span>
+                      ) : (
+                        <span className="text-sm text-white">{user.email}</span>
+                      )}
                       <button
                         onClick={handleSignOut}
                         className="inline-flex items-center px-4 py-1 border border-primary text-sm font-medium rounded-md text-white hover:bg-primary/20 focus:outline-none"
@@ -142,6 +186,15 @@ export default function NavBar() {
               >
                 WORKOUTS
               </Link>
+              {user && (
+                <Link 
+                  href="/profile" 
+                  className="px-3 py-2 text-sm font-medium text-white hover:text-primary hover:bg-primary/10 rounded-md"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  PROFILE
+                </Link>
+              )}
             </nav>
             
             {/* 회원가입 버튼은 여기에 남겨둠 */}
@@ -159,14 +212,7 @@ export default function NavBar() {
               </div>
             )}
             
-            {/* 로그인한 사용자의 이메일 정보 표시 */}
-            {!isLoading && user && (
-              <div className="mt-4 pt-4 border-t border-primary/30">
-                <div className="px-3">
-                  <span className="text-sm text-white">{user.email}</span>
-                </div>
-              </div>
-            )}
+            
           </div>
         )}
       </div>

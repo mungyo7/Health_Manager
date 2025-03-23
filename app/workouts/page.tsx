@@ -23,6 +23,18 @@ const EXERCISE_CATEGORIES = [
   'CHEST', 'BACK', 'LEGS', 'SHOULDERS', 'ARMS', 'CORE', 'CARDIO', 'OTHER'
 ];
 
+// 한글 운동 타입 매핑
+const EXERCISE_TYPE_KOREAN: Record<string, string> = {
+  'CHEST': '가슴',
+  'BACK': '등',
+  'LEGS': '하체',
+  'SHOULDERS': '어깨',
+  'ARMS': '팔',
+  'CORE': '코어',
+  'CARDIO': '유산소',
+  'OTHER': '기타'
+};
+
 // 초기 세트 정보
 const INITIAL_SET = { weight: 0, reps: 0 };
 
@@ -43,6 +55,7 @@ export default function WorkoutsPage() {
   const [error, setError] = useState<string | null>(null);
   const [showManageExercises, setShowManageExercises] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
+  const [newExerciseType, setNewExerciseType] = useState('CHEST'); // 기본값은 가슴으로 설정
   const [editingExerciseType, setEditingExerciseType] = useState<WorkoutType | null>(null);
   const [deleteExerciseTypeId, setDeleteExerciseTypeId] = useState<string | null>(null);
 
@@ -336,13 +349,14 @@ export default function WorkoutsPage() {
     
     try {
       setLoading(true);
-      const newExerciseType = await addWorkoutType(newExerciseName.toUpperCase());
+      const newExerciseTypeObj = await addWorkoutType(newExerciseName.toUpperCase(), newExerciseType);
       
       // 상태 업데이트
-      setExerciseTypes([...exerciseTypes, newExerciseType]);
+      setExerciseTypes([...exerciseTypes, newExerciseTypeObj]);
       
       // 입력 필드 초기화
       setNewExerciseName('');
+      setNewExerciseType('CHEST'); // 기본값으로 재설정
       setError(null);
     } catch (err: any) {
       console.error('Error adding workout type:', err);
@@ -366,6 +380,7 @@ export default function WorkoutsPage() {
   const handlePrepareEditExerciseType = (exerciseType: WorkoutType) => {
     setEditingExerciseType(exerciseType);
     setNewExerciseName(exerciseType.name);
+    setNewExerciseType(exerciseType.type || 'OTHER');
   };
   
   // 운동 종류 수정 완료 핸들러
@@ -376,7 +391,8 @@ export default function WorkoutsPage() {
       setLoading(true);
       const updatedType = await updateWorkoutType(
         editingExerciseType.id,
-        newExerciseName.toUpperCase()
+        newExerciseName.toUpperCase(),
+        newExerciseType
       );
       
       // 상태 업데이트
@@ -388,6 +404,7 @@ export default function WorkoutsPage() {
       
       // 입력 필드 및 편집 상태 초기화
       setNewExerciseName('');
+      setNewExerciseType('CHEST');
       setEditingExerciseType(null);
       setError(null);
     } catch (err: any) {
@@ -436,6 +453,35 @@ export default function WorkoutsPage() {
     }
   };
 
+  // 운동 타입별로 운동을 그룹화하는 함수
+  const groupExercisesByType = (exercises: WorkoutType[]) => {
+    const grouped: { [key: string]: WorkoutType[] } = {};
+    
+    // EXERCISE_CATEGORIES 순서대로 그룹 생성
+    EXERCISE_CATEGORIES.forEach(category => {
+      grouped[category] = [];
+    });
+    
+    // 운동을 타입별로 분류
+    exercises.forEach(exercise => {
+      const type = exercise.type || 'OTHER';
+      if (grouped[type]) {
+        grouped[type].push(exercise);
+      } else {
+        grouped['OTHER'].push(exercise);
+      }
+    });
+    
+    // 빈 그룹 제거 (선택사항)
+    Object.keys(grouped).forEach(key => {
+      if (grouped[key].length === 0) {
+        delete grouped[key];
+      }
+    });
+    
+    return grouped;
+  };
+
   // 운동 세트를 운동 종류별로 그룹화하는 함수
   const groupSetsByExercise = () => {
     const groupedSets: { [key: string]: any } = {};
@@ -446,6 +492,7 @@ export default function WorkoutsPage() {
         groupedSets[set.workout_type_id] = {
           workout_type_id: set.workout_type_id,
           name: exerciseType?.name || '알 수 없는 운동',
+          type: exerciseType?.type,
           sets: []
         };
       }
@@ -576,64 +623,71 @@ export default function WorkoutsPage() {
           </div>
           
           {/* 운동 종류 목록 */}
-          <div className="overflow-x-auto border-2 border-primary/30 shadow-[0_0_15px_rgba(0,255,255,0.1)]">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-primary/20 border-b-2 border-primary/50">
-                  <th className="p-4 text-primary uppercase tracking-wider font-bold">EXERCISE_NAME</th>
-                  <th className="p-4 text-primary uppercase tracking-wider font-bold w-48">ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-primary/20">
-                {exerciseTypes.length === 0 ? (
-                  <tr>
-                    <td colSpan={2} className="p-6 text-center text-gray-400 italic">
-                      데이터베이스에 등록된 운동이 없습니다. 새 운동을 추가하세요.
-                    </td>
-                  </tr>
-                ) : (
-                  exerciseTypes.map((exerciseType) => (
-                    <tr key={exerciseType.id} className="hover:bg-primary/5 transition-colors duration-150">
-                      <td className="p-4 text-white">{exerciseType.name}</td>
-                      <td className="p-4">
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handlePrepareEditExerciseType(exerciseType)}
-                            className="px-3 py-1 bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 transition-colors duration-200 uppercase tracking-wider text-sm"
-                          >
-                            EDIT
-                          </button>
-                          
-                          {deleteExerciseTypeId === exerciseType.id ? (
-                            <div className="flex space-x-1">
-                              <button
-                                onClick={confirmDeleteExerciseType}
-                                className="px-2 py-1 bg-red-900/70 text-red-300 border border-red-500/30 hover:bg-red-800 transition-colors duration-200 uppercase tracking-wider text-sm"
-                              >
-                                CONFIRM
-                              </button>
-                              <button
-                                onClick={() => setDeleteExerciseTypeId(null)}
-                                className="px-2 py-1 bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700 transition-colors duration-200 uppercase tracking-wider text-sm"
-                              >
-                                CANCEL
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => handleDeleteExerciseType(exerciseType.id)}
-                              className="px-3 py-1 bg-red-900/30 text-red-400 border border-red-500/30 hover:bg-red-900/50 transition-colors duration-200 uppercase tracking-wider text-sm"
-                            >
-                              DELETE
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          <div className="max-h-80 overflow-y-auto">
+            {exerciseTypes.length === 0 ? (
+              <div className="text-center p-4 text-gray-400">
+                데이터베이스에 등록된 운동이 없습니다. 새 운동을 추가하세요.
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {Object.entries(groupExercisesByType(exerciseTypes)).map(([type, exercises]) => (
+                  <div key={type} className="space-y-2">
+                    <h4 className="text-primary text-sm font-bold bg-primary/10 p-2 sticky top-0">
+                      {EXERCISE_TYPE_KOREAN[type]} ({exercises.length})
+                    </h4>
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-primary/30">
+                          <th className="p-2 text-left text-xs text-primary uppercase">운동 이름</th>
+                          <th className="p-2 text-right text-xs text-primary uppercase">관리</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-800">
+                        {exercises.map((type) => (
+                          <tr key={type.id} className="hover:bg-primary/5">
+                            <td className="p-2 text-white">{type.name}</td>
+                            <td className="p-2 text-right">
+                              <div className="flex justify-end space-x-2">
+                                <button
+                                  onClick={() => handlePrepareEditExerciseType(type)}
+                                  className="px-2 py-0.5 text-xs bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 transition-colors duration-200 rounded-sm"
+                                >
+                                  수정
+                                </button>
+                                
+                                {deleteExerciseTypeId === type.id ? (
+                                  <div className="flex space-x-1">
+                                    <button
+                                      onClick={confirmDeleteExerciseType}
+                                      className="px-2 py-0.5 text-xs bg-red-900/70 text-red-300 border border-red-500/30 hover:bg-red-800 transition-colors duration-200 rounded-sm"
+                                    >
+                                      확인
+                                    </button>
+                                    <button
+                                      onClick={() => setDeleteExerciseTypeId(null)}
+                                      className="px-2 py-0.5 text-xs bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700 transition-colors duration-200 rounded-sm"
+                                    >
+                                      취소
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => handleDeleteExerciseType(type.id)}
+                                    className="px-2 py-0.5 text-xs bg-red-800/30 text-red-400 border border-red-500/30 hover:bg-red-800/50 transition-colors duration-200 rounded-sm"
+                                  >
+                                    삭제
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       ) : (
@@ -654,23 +708,33 @@ export default function WorkoutsPage() {
             {!selectedExercise && currentExercises.length === 0 && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-primary uppercase tracking-wider mb-2">SELECT_EXERCISE</label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {loading ? (
-                    <div className="text-gray-400">운동 종류를 불러오는 중...</div>
-                  ) : exerciseTypes.length === 0 ? (
-                    <div className="text-gray-400">저장된 운동 종류가 없습니다.</div>
-                  ) : (
-                    exerciseTypes.map((exercise) => (
-                      <button
-                        key={exercise.id}
-                        onClick={() => handleExerciseSelect(exercise.id)}
-                        className="text-left px-4 py-3 bg-black border border-primary/30 hover:border-primary/70 hover:bg-primary/5 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-primary/50 shadow-[0_0_5px_rgba(0,255,255,0.1)] hover:shadow-[0_0_8px_rgba(0,255,255,0.2)]"
-                      >
-                        {exercise.name}
-                      </button>
-                    ))
-                  )}
-                </div>
+                
+                {loading ? (
+                  <div className="text-gray-400">운동 종류를 불러오는 중...</div>
+                ) : exerciseTypes.length === 0 ? (
+                  <div className="text-gray-400">저장된 운동 종류가 없습니다.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {Object.entries(groupExercisesByType(exerciseTypes)).map(([type, exercises]) => (
+                      <div key={type} className="space-y-2">
+                        <h4 className="text-primary text-sm font-bold border-b border-primary/30 pb-1 mb-2">
+                          {EXERCISE_TYPE_KOREAN[type]} ({exercises.length})
+                        </h4>
+                        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                          {exercises.map((exercise) => (
+                            <button
+                              key={exercise.id}
+                              onClick={() => handleExerciseSelect(exercise.id)}
+                              className="text-center h-10 px-2 py-1.5 bg-black border border-primary/30 rounded-sm text-sm hover:border-primary/70 hover:bg-primary/5 transition-all duration-200 focus:outline-none focus:ring-1 focus:ring-primary/50 shadow-[0_0_5px_rgba(0,255,255,0.1)] hover:shadow-[0_0_8px_rgba(0,255,255,0.2)] flex items-center justify-center"
+                            >
+                              {exercise.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             
@@ -825,8 +889,13 @@ export default function WorkoutsPage() {
               <div className="space-y-5">
                 {groupedExercises.map((exercise) => (
                   <div key={exercise.workout_type_id} className="p-5 border-2 border-primary/20 bg-black/70 shadow-[0_0_10px_rgba(0,255,255,0.1)]">
-                    <div className="mb-3 pb-2 border-b border-primary/20">
+                    <div className="mb-3 pb-2 border-b border-primary/20 flex justify-between items-center">
                       <h4 className="font-bold text-primary">{exercise.name}</h4>
+                      {exercise.type && (
+                        <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">
+                          {EXERCISE_TYPE_KOREAN[exercise.type] || exercise.type}
+                        </span>
+                      )}
                     </div>
                     
                     <div className="overflow-x-auto">
@@ -915,6 +984,129 @@ export default function WorkoutsPage() {
           RETURN_TO_CALENDAR
         </Link>
       </div>
+      
+      {/* 운동 종류 관리 모달 */}
+      {showManageExercises && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black opacity-70" onClick={toggleManageExercises}></div>
+          <div className="relative z-10 bg-black border-2 border-primary p-6 shadow-lg w-full max-w-2xl">
+            <h2 className="text-xl font-bold text-primary mb-5 uppercase tracking-wider">운동 종류 관리</h2>
+            
+            <div className="mb-6">
+              <h3 className="text-white text-lg mb-3">{editingExerciseType ? '운동 수정' : '새 운동 추가'}</h3>
+              <div className="flex flex-col md:flex-row md:space-x-3 space-y-3 md:space-y-0">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={newExerciseName}
+                    onChange={(e) => setNewExerciseName(e.target.value)}
+                    placeholder="운동 이름 입력"
+                    className="w-full bg-black border border-primary/50 p-3 text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  />
+                </div>
+                <div className="w-full md:w-1/3">
+                  <select
+                    value={newExerciseType}
+                    onChange={(e) => setNewExerciseType(e.target.value)}
+                    className="w-full bg-black border border-primary/50 p-3 text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  >
+                    {EXERCISE_CATEGORIES.map(category => (
+                      <option key={category} value={category}>
+                        {EXERCISE_TYPE_KOREAN[category]} ({category})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <button
+                    onClick={editingExerciseType ? handleUpdateExerciseType : handleAddExerciseType}
+                    disabled={loading || !newExerciseName.trim()}
+                    className="w-full md:w-auto px-5 py-3 bg-primary text-black font-bold disabled:opacity-50 hover:shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all duration-300"
+                  >
+                    {loading ? '처리 중...' : (editingExerciseType ? '수정' : '추가')}
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div className="max-h-80 overflow-y-auto">
+              {exerciseTypes.length === 0 ? (
+                <div className="text-center p-4 text-gray-400">
+                  데이터베이스에 등록된 운동이 없습니다. 새 운동을 추가하세요.
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {Object.entries(groupExercisesByType(exerciseTypes)).map(([type, exercises]) => (
+                    <div key={type} className="space-y-2">
+                      <h4 className="text-primary text-sm font-bold bg-primary/10 p-2 sticky top-0">
+                        {EXERCISE_TYPE_KOREAN[type]} ({exercises.length})
+                      </h4>
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-primary/30">
+                            <th className="p-2 text-left text-xs text-primary uppercase">운동 이름</th>
+                            <th className="p-2 text-right text-xs text-primary uppercase">관리</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-800">
+                          {exercises.map((type) => (
+                            <tr key={type.id} className="hover:bg-primary/5">
+                              <td className="p-2 text-white">{type.name}</td>
+                              <td className="p-2 text-right">
+                                <div className="flex justify-end space-x-2">
+                                  <button
+                                    onClick={() => handlePrepareEditExerciseType(type)}
+                                    className="px-2 py-0.5 text-xs bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 transition-colors duration-200 rounded-sm"
+                                  >
+                                    수정
+                                  </button>
+                                  
+                                  {deleteExerciseTypeId === type.id ? (
+                                    <div className="flex space-x-1">
+                                      <button
+                                        onClick={confirmDeleteExerciseType}
+                                        className="px-2 py-0.5 text-xs bg-red-900/70 text-red-300 border border-red-500/30 hover:bg-red-800 transition-colors duration-200 rounded-sm"
+                                      >
+                                        확인
+                                      </button>
+                                      <button
+                                        onClick={() => setDeleteExerciseTypeId(null)}
+                                        className="px-2 py-0.5 text-xs bg-gray-800 text-gray-300 border border-gray-600 hover:bg-gray-700 transition-colors duration-200 rounded-sm"
+                                      >
+                                        취소
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleDeleteExerciseType(type.id)}
+                                      className="px-2 py-0.5 text-xs bg-red-800/30 text-red-400 border border-red-500/30 hover:bg-red-800/50 transition-colors duration-200 rounded-sm"
+                                    >
+                                      삭제
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-6 text-right">
+              <button
+                onClick={toggleManageExercises}
+                className="px-4 py-2 border border-primary/50 text-primary hover:bg-primary/10 transition-all duration-300"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
