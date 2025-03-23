@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { getWorkoutLogs, WorkoutLog } from './lib/api';
+import WorkoutLogForm from './components/WorkoutLogForm';
+import WorkoutLogList from './components/WorkoutLogList';
 
 // 달력 관련 유틸 함수
 const getDaysInMonth = (year: number, month: number) => {
@@ -14,40 +17,38 @@ const getFirstDayOfMonth = (year: number, month: number) => {
 
 const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
-// 더미 운동 데이터
-const DUMMY_WORKOUTS = [
-  { date: '2023-06-10', duration: 60, completed: true },
-  { date: '2023-06-12', duration: 75, completed: true },
-  { date: '2023-06-15', duration: 90, completed: true },
-  { date: '2023-06-18', duration: 45, completed: false },
-  { date: '2023-06-20', duration: 80, completed: true },
-  { date: '2023-06-22', duration: 65, completed: true },
-  { date: '2023-06-25', duration: 70, completed: true },
-  { date: '2023-06-28', duration: 60, completed: true },
-];
-
 export default function Home() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [workouts, setWorkouts] = useState<any[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [workoutDuration, setWorkoutDuration] = useState<number>(60);
-  const [workoutCompleted, setWorkoutCompleted] = useState<boolean>(true);
+  const [workouts, setWorkouts] = useState<WorkoutLog[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // 현재 보고 있는 연도와 월
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth();
 
-  // 로컬 스토리지에서 운동 데이터 불러오기
+  // Supabase에서 운동 데이터 불러오기
   useEffect(() => {
-    const savedWorkouts = localStorage.getItem('workouts');
-    if (savedWorkouts) {
-      setWorkouts(JSON.parse(savedWorkouts));
-    } else {
-      // 더미 데이터 사용
-      setWorkouts(DUMMY_WORKOUTS);
-      localStorage.setItem('workouts', JSON.stringify(DUMMY_WORKOUTS));
+    async function fetchWorkoutLogs() {
+      try {
+        setLoading(true);
+        // 현재 월의 시작일과 마지막일 계산
+        const startDate = new Date(currentYear, currentMonth, 1);
+        const endDate = new Date(currentYear, currentMonth + 1, 0);
+        
+        const fetchedLogs = await getWorkoutLogs(startDate, endDate);
+        setWorkouts(fetchedLogs);
+        setError(null);
+      } catch (err: any) {
+        setError(err.message || '운동 기록을 불러오는 중 오류가 발생했습니다.');
+      } finally {
+        setLoading(false);
+      }
     }
-  }, []);
+
+    fetchWorkoutLogs();
+  }, [currentYear, currentMonth]);
 
   // 이전 달로 이동
   const goToPreviousMonth = () => {
@@ -61,41 +62,29 @@ export default function Home() {
 
   // 날짜 선택 핸들러
   const handleDateSelect = (date: string) => {
-    setSelectedDate(date);
-    const existingWorkout = workouts.find(workout => workout.date === date);
-    if (existingWorkout) {
-      setWorkoutDuration(existingWorkout.duration);
-      setWorkoutCompleted(existingWorkout.completed);
-    } else {
-      setWorkoutDuration(60);
-      setWorkoutCompleted(true);
-    }
+    setSelectedDate(new Date(date));
   };
 
-  // 운동 기록 저장 핸들러
-  const handleSaveWorkout = () => {
-    if (!selectedDate) return;
-
-    const updatedWorkouts = [...workouts];
-    const existingIndex = updatedWorkouts.findIndex(workout => workout.date === selectedDate);
-
-    if (existingIndex >= 0) {
-      updatedWorkouts[existingIndex] = {
-        ...updatedWorkouts[existingIndex],
-        duration: workoutDuration,
-        completed: workoutCompleted
-      };
-    } else {
-      updatedWorkouts.push({
-        date: selectedDate,
-        duration: workoutDuration,
-        completed: workoutCompleted
-      });
+  // 운동 로그 저장 후 처리
+  const handleWorkoutLogSaved = (log: WorkoutLog) => {
+    // 현재 표시 중인 월의 데이터인 경우 목록 업데이트
+    const logDate = new Date(log.workout_date);
+    if (logDate.getFullYear() === currentYear && logDate.getMonth() === currentMonth) {
+      // 기존 workouts 목록 업데이트
+      const updatedWorkouts = [...workouts];
+      const existingIndex = updatedWorkouts.findIndex(w => w.id === log.id);
+      
+      if (existingIndex >= 0) {
+        updatedWorkouts[existingIndex] = log;
+      } else {
+        updatedWorkouts.push(log);
+      }
+      
+      setWorkouts(updatedWorkouts);
     }
-
-    setWorkouts(updatedWorkouts);
-    localStorage.setItem('workouts', JSON.stringify(updatedWorkouts));
-    setSelectedDate(null); // 선택 초기화
+    
+    // 선택 초기화
+    setSelectedDate(null);
   };
 
   // 달력에 표시할 날짜들 생성
@@ -112,9 +101,9 @@ export default function Home() {
 
   // 현재 달의 날짜들 추가
   for (let day = 1; day <= daysInMonth; day++) {
-    const date = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const workout = workouts.find(w => w.date === date);
-    calendarDays.push({ day, date, workout });
+    const dateString = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const workout = workouts.find(w => w.workout_date === dateString);
+    calendarDays.push({ day, date: dateString, workout });
   }
 
   // 월 이름 표시용
@@ -140,6 +129,12 @@ export default function Home() {
         </div>
       </div>
 
+      {error && (
+        <div className="p-3 mb-4 text-sm text-red-400 bg-red-900/30 rounded-lg">
+          {error}
+        </div>
+      )}
+
       <div className="calendar-header">
         {WEEKDAYS.map(day => (
           <div key={day}>{day}</div>
@@ -159,7 +154,7 @@ export default function Home() {
                   <span>{dayData.day}</span>
                   {dayData.workout && (
                     <span className="workout-badge">
-                      {dayData.workout.duration}분
+                      {dayData.workout.duration_minutes || 0}분
                     </span>
                   )}
                 </div>
@@ -183,61 +178,28 @@ export default function Home() {
         ))}
       </div>
 
-      {/* 선택한 날짜의 운동 기록 추가/수정 폼 */}
+      {/* 선택한 날짜의 운동 기록 폼 */}
       {selectedDate && (
-        <div className="mt-6 p-4 border border-primary/70 bg-black/80 neon-border">
+        <div className="mt-6">
           <h3 className="text-lg font-medium mb-4 neon-text">
-            {selectedDate} WORKOUT LOG
+            {selectedDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} 운동 기록
           </h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-primary mb-1">
-                WORKOUT DURATION (MIN)
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={workoutDuration}
-                onChange={(e) => setWorkoutDuration(parseInt(e.target.value))}
-                className="w-full px-3 py-2 bg-black border border-primary/70 text-white focus:outline-none focus:border-primary"
-              />
-            </div>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="completed"
-                checked={workoutCompleted}
-                onChange={(e) => setWorkoutCompleted(e.target.checked)}
-                className="h-4 w-4 text-primary focus:ring-primary border-primary/70 rounded-none bg-black"
-              />
-              <label htmlFor="completed" className="ml-2 block text-sm text-white">
-                COMPLETED
-              </label>
-            </div>
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setSelectedDate(null)}
-                className="px-4 py-2 border border-primary/70 text-primary bg-black hover:bg-primary/10"
-              >
-                CANCEL
-              </button>
-              <button
-                onClick={handleSaveWorkout}
-                className="px-4 py-2 border border-primary bg-primary text-black hover:bg-primary/90"
-              >
-                SAVE
-              </button>
-            </div>
-          </div>
+          <WorkoutLogForm 
+            date={selectedDate} 
+            onSave={handleWorkoutLogSaved} 
+          />
         </div>
       )}
+
+      {/* 운동 기록 목록 */}
+      <WorkoutLogList />
 
       <div className="mt-6 flex justify-center">
         <Link 
           href="/workouts" 
           className="px-6 py-3 bg-primary text-black font-bold hover:bg-primary/90 neon-border"
         >
-          RECORD WORKOUT SETS
+          운동 세트 기록
         </Link>
       </div>
     </div>
